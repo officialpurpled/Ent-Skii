@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entity Bank | Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h3 id="name">Hello</h3>
+
+    <div class="card">
+      <h1 id="balance">₦0.00</h1>
+      <p id="account">0000000000</p>
+    </div>
+
+    <div class="card">
+      <button onclick="location.href='transfer.html'">Transfer</button>
+      <button>Airtime</button>
+      <button>Data</button>
+    </div>
+
+    <h4>Recent Transactions</h4>
+    <div id="transactions"></div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

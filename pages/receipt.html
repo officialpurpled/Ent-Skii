@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+  <div class="card" id="receipt"></div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+async function loadReceipt(){
+  const id = localStorage.getItem("txId");
+  const tx = await apiRequest("/user/transactions");
+
+  const item = tx.find(t => t._id === id);
+
+  receipt.innerHTML = `
+    <h2>₦${item.amount}</h2>
+    <p>From: ${item.sender}</p>
+    <p>To: ${item.receiver}</p>
+    <p>Date: ${item.date}</p>
+    <p>Status: ${item.status}</p>
+  `;
+}
+
+loadReceipt();
+</script>
+</body>
+</html>

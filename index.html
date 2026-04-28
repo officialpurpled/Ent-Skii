@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+      body{
+        background-color: #0f172a;
+              
+      }
+      button{
+                background-color: #0d5c63
+
+      }
+      h2, p{
+        color: aliceblue;
+      }
+    </style>
+</head>
+<body>
+    <div class="container">
+  <h2>Login</h2>
+
+  <input id="accountNumber" placeholder="Account Number">
+  <input id="password" type="password" placeholder="Password">
+
+  <button onclick="handleLogin(this)">Login</button>
+
+  <p onclick="goSignup()">Create Account</p>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+async function handleLogin(btn){
+  setLoading(btn, true);
+
+  await login(accountNumber.value, password.value);
+
+  setLoading(btn, false);
+}
+
+function goSignup(){
+  window.location.href = "signup.html";
+}
+</script>
+</body>
+</html>

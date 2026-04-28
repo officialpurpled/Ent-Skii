@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trans</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+
+  <h3>Transactions</h3>
+
+  <select onchange="filterTx(this.value)">
+    <option value="all">All</option>
+    <option value="sent">Sent</option>
+    <option value="received">Received</option>
+  </select>
+
+  <div id="txList"></div>
+
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/transactions.js"></script>
+<script>
+let allTx = [];
+
+async function loadTransactions(){
+  allTx = await apiRequest("/user/transactions");
+  render(allTx);
+}
+
+function render(data){
+  txList.innerHTML = data.map(t => `
+    <div class="card" onclick="view('${t._id}')">
+      <p>${t.type} - ₦${t.amount}</p>
+    </div>
+  `).join("");
+}
+
+function filterTx(type){
+  if(type === "all") return render(allTx);
+  render(allTx.filter(t => t.type === type));
+}
+
+function view(id){
+  localStorage.setItem("txId", id);
+  window.location.href = "receipt.html";
+}
+
+loadTransactions();
+</script>
+</body>
+</html>

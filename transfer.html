@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Transfer - Entity Bank</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Axios -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <!-- Lucide -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body { background:#0F172A; color:#F1F5F9; }
+  </style>
+</head>
+<body class="flex justify-center">
+
+<div class="w-full max-w-[480px] min-h-screen p-4">
+
+  <!-- HEADER -->
+  <div class="flex items-center gap-3 mb-6">
+    <button onclick="goBack()">
+      <i data-lucide="arrow-left"></i>
+    </button>
+    <h1 class="text-lg font-semibold">Transfer</h1>
+  </div>
+
+  <!-- STEP 1 -->
+  <div id="step1" class="bg-[#1E293B] p-6 rounded-2xl">
+    <label class="block mb-2 text-sm">Recipient Account Number</label>
+    <input id="accountInput" maxlength="10"
+      class="w-full p-3 rounded-lg bg-[#0F172A] border border-[#334155] outline-none"
+      placeholder="2010000001" />
+
+    <p id="step1Error" class="text-[#EF4444] text-sm mt-2 hidden"></p>
+
+    <button id="confirmBtn"
+      class="mt-4 w-full bg-[#00C896] text-black py-3 rounded-lg font-semibold">
+      Confirm
+    </button>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="step2" class="hidden space-y-4">
+
+    <!-- VERIFIED CARD -->
+    <div class="bg-[#1E293B] p-4 rounded-xl flex items-center gap-3">
+      <i data-lucide="check-circle" class="text-[#22C55E]"></i>
+      <div>
+        <p id="receiverName" class="font-semibold"></p>
+        <p id="receiverAcc" class="text-sm text-gray-400"></p>
+      </div>
+    </div>
+
+    <div class="bg-[#1E293B] p-6 rounded-2xl">
+      <label class="block mb-2 text-sm">Amount</label>
+      <div class="flex items-center border border-[#334155] rounded-lg bg-[#0F172A]">
+        <span class="px-3 text-gray-400">₦</span>
+        <input id="amountInput" type="number"
+          class="w-full p-3 bg-transparent outline-none"
+          placeholder="0.00" />
+      </div>
+
+      <label class="block mt-4 mb-2 text-sm">Narration</label>
+      <input id="narrationInput"
+        class="w-full p-3 rounded-lg bg-[#0F172A] border border-[#334155]"
+        placeholder="What's this for?" />
+
+      <p id="step2Error" class="text-[#EF4444] text-sm mt-2 hidden"></p>
+
+      <button id="continueBtn"
+        class="mt-4 w-full bg-[#00C896] text-black py-3 rounded-lg font-semibold">
+        Continue
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-[#1E293B] p-6 rounded-2xl w-[90%] max-w-sm">
+
+      <h2 class="text-lg font-semibold mb-1">Enter Password</h2>
+      <p id="modalSubtitle" class="text-sm text-gray-400 mb-4"></p>
+
+      <div class="relative">
+        <input id="passwordInput" type="password"
+          class="w-full p-3 rounded-lg bg-[#0F172A] border border-[#334155]" />
+        <button onclick="togglePassword()" class="absolute right-3 top-3">
+          <i data-lucide="eye"></i>
+        </button>
+      </div>
+
+      <p id="modalError" class="text-[#EF4444] text-sm mt-2 hidden"></p>
+
+      <div class="flex gap-3 mt-4">
+        <button onclick="closeModal()"
+          class="flex-1 border border-[#334155] py-3 rounded-lg">
+          Cancel
+        </button>
+        <button id="transferBtn"
+          class="flex-1 bg-[#00C896] text-black py-3 rounded-lg font-semibold">
+          Confirm Transfer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="successScreen" class="hidden flex flex-col items-center justify-center text-center mt-20">
+    <i data-lucide="check-circle" class="text-[#22C55E] w-16 h-16 mb-4"></i>
+    <h2 class="text-xl font-semibold">Transfer Successful</h2>
+    <p id="successText" class="mt-2 text-gray-400"></p>
+    <p id="referenceText" class="text-sm mt-1 text-gray-500"></p>
+
+    <button onclick="goDashboard()"
+      class="mt-6 w-full bg-[#00C896] text-black py-3 rounded-lg">
+      Done
+    </button>
+  </div>
+
+</div>
+
+<script>
+lucide.createIcons();
+
+const API = "http://localhost:3060/api/v1";
+const token = localStorage.getItem("token");
+
+if (!token) window.location.href = "login.html";
+
+let receiver = {};
+let balance = 0;
+
+// Load profile
+axios.get(API + "/user/profile", {
+  headers: { Authorization: `Bearer ${token}` }
+}).then(res => {
+  balance = res.data.account.balance || 0;
+});
+
+// STEP 1
+document.getElementById("confirmBtn").onclick = async () => {
+  const acc = accountInput.value.trim();
+  const btn = confirmBtn;
+
+  if (acc.length !== 10) return showError("step1Error", "Enter valid 10-digit account");
+
+  btn.disabled = true;
+  btn.innerText = "Verifying...";
+
+  try {
+    const res = await axios.post(`${API}/user/get-receiverName`,{
+      accountNumber: acc
+    },{
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    receiver = res.data;
+
+    receiverName.innerText = receiver.accountName;
+    receiverAcc.innerText = receiver.accountNumber;
+
+    step1.classList.add("hidden");
+    step2.classList.remove("hidden");
+
+  } catch (err) {
+    showError("step1Error", "Account not found");
+  }
+
+  btn.disabled = false;
+  btn.innerText = "Confirm";
+};
+
+// STEP 2
+continueBtn.onclick = () => {
+  const amount = parseFloat(amountInput.value);
+
+  if (!amount || amount <= 0)
+    return showError("step2Error", "Enter valid amount");
+
+  if (amount > balance)
+    return showError("step2Error", "Insufficient balance");
+
+  modalSubtitle.innerText = `Sending ${formatMoney(amount)} to ${receiver.accountName}`;
+  modal.classList.remove("hidden");
+};
+
+// TRANSFER
+transferBtn.onclick = async () => {
+  const btn = transferBtn;
+  const password = passwordInput.value;
+  const amount = parseFloat(amountInput.value);
+
+  btn.disabled = true;
+  btn.innerText = "Processing...";
+
+  try {
+    const res = await axios.post(`${API}/user/transfer`, {
+      receiver: receiver.accountNumber,
+      amount,
+      narration: narrationInput.value,
+      password
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    modal.classList.add("hidden");
+
+    successText.innerText = `${formatMoney(amount)} sent to ${receiver.accountName}`;
+    referenceText.innerText = res.data.transaction?.reference || "TXN123456789";
+
+    step2.classList.add("hidden");
+    successScreen.classList.remove("hidden");
+
+  } catch (err) {
+    showError("modalError", err.response?.data?.message || "Error");
+  }
+
+  btn.disabled = false;
+  btn.innerText = "Confirm Transfer";
+};
+
+// HELPERS
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.innerText = msg;
+  el.classList.remove("hidden");
+}
+
+function formatMoney(num) {
+  return "₦" + Number(num).toLocaleString(undefined, { minimumFractionDigits: 2 });
+}
+
+function togglePassword() {
+  const input = passwordInput;
+  input.type = input.type === "password" ? "text" : "password";
+}
+
+function closeModal() {
+  modal.classList.add("hidden");
+}
+
+function goBack() {
+  window.location.href = "dashboard.html";
+}
+
+function goDashboard() {
+  window.location.href = "dashboard.html";
+}
+</script>
+
+</body>
+</html>

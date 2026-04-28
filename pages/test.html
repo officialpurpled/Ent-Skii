@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banking & Data Topup API Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .version {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+
+        /* Content */
+        .content {
+            padding: 40px;
+        }
+
+        /* Navigation */
+        .toc {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .toc ul {
+            columns: 2;
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .toc li {
+            margin-bottom: 8px;
+        }
+
+        .toc a {
+            color: #333;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .toc a:hover {
+            color: #667eea;
+        }
+
+        /* Headings */
+        h1 {
+            font-size: 2em;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            color: #333;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        h3 {
+            font-size: 1.3em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #764ba2;
+        }
+
+        h4 {
+            font-size: 1.1em;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        /* Endpoint styling */
+        .endpoint {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .endpoint-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.85em;
+            margin-right: 10px;
+        }
+
+        .method-post { background: #28a745; color: white; }
+        .method-get { background: #17a2b8; color: white; }
+        .method-patch { background: #ffc107; color: #333; }
+        .method-delete { background: #dc3545; color: white; }
+
+        .endpoint-url {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        /* Code blocks */
+        pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e83e8c;
+        }
+
+        pre code {
+            background: none;
+            color: #abb2bf;
+            padding: 0;
+        }
+
+        /* Alert boxes */
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #0c5460;
+            color: #0c5460;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #856404;
+            color: #856404;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-color: #155724;
+            color: #155724;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            border-color: #721c24;
+            color: #721c24;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .badge-required {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge-optional {
+            background: #6c757d;
+            color: white;
+        }
+
+        /* Footer */
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 40px;
+            text-align: center;
+            border-top: 1px solid #dee2e6;
+            color: #666;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+            .toc {
+                break-after: avoid;
+            }
+            pre {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            table {
+                break-inside: avoid;
+            }
+            .endpoint {
+                break-inside: avoid;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+            .toc ul {
+                columns: 1;
+            }
+            th, td {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🏦 Banking & Data Topup API</h1>
+        <p>Complete REST API Documentation for Digital Banking Services</p>
+        <div class="version">Version 1.0.0 | Last Updated: April 2026</div>
+    </div>
+
+    <div class="content">
+        <!-- Table of Contents -->
+        <div class="toc">
+            <h2>📑 Table of Contents</h2>
+            <ul>
+                <li><a href="#base-url">Base URL & Environment</a></li>
+                <li><a href="#authentication">Authentication</a></li>
+                <li><a href="#database">Database Structure</a></li>
+                <li><a href="#auth-endpoints">Authentication Endpoints</a></li>
+                <li><a href="#user-endpoints">User Endpoints</a></li>
+                <li><a href="#error-codes">Error Codes</a></li>
+                <li><a href="#postman">Postman Collection</a></li>
+                <li><a href="#changelog">Changelog</a></li>
+            </ul>
+        </div>
+
+        <!-- Base URL Section -->
+        <h1 id="base-url">🌐 Base URL</h1>
+        <pre><code>http://localhost:3060/api/v1</code></pre>
+
+        <h2>Environment Variables</h2>
+        <table>
+            <thead>
+                <tr><th>Variable</th><th>Default Value</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>PORT</code></td><td>3060</td><td>Server port</td></tr>
+                <tr><td><code>ACCESS_TOKEN</code></td><td>dev-access-token</td><td>JWT secret key</td></tr>
+                <tr><td><code>ENTITY_ACCNO</code></td><td>2026250901</td><td>Entity bank account number</td></tr>
+                <tr><td><code>ENTITY_ACCBAL</code></td><td>1000000</td><td>Entity bank balance</td></tr>
+                <tr><td><code>ENTITY_ACC_TYPE</code></td><td>Savings</td><td>Entity account type</td></tr>
+            </tbody>
+        </table>
+
+        <!-- Authentication Section -->
+        <h1 id="authentication">🔐 Authentication</h1>
+        <div class="alert alert-info">
+            Most endpoints require a Bearer token obtained from the login endpoint. Token expires in <strong>20 minutes</strong>.
+        </div>
+        <pre><code>Authorization: Bearer &lt;your_jwt_token&gt;
+Content-Type: application/json</code></pre>
+
+        <!-- Database Structure -->
+        <h1 id="database">💾 Database Structure</h1>
+        
+        <h3>User Object</h3>
+        <pre><code>{
+  "id": 3,
+  "fullname": "James Doe",
+  "age": 19,
+  "address": "mini campus",
+  "phone": "012101010",
+  "email": "jamesdoe@gmail.com",
+  "bvn": 1239456,
+  "nin": 19235698,
+  "password": "qwerty",
+  "accountNo": 2026250902,
+  "transactions": ["trans-abc123", "topup-def456"]
+}</code></pre>
+
+        <h3>Account Object</h3>
+        <pre><code>{
+  "id": 2,
+  "status": "active",
+  "number": 2026250901,
+  "balance": 1000000,
+  "type": "Savings"
+}</code></pre>
+
+        <!-- Authentication Endpoints -->
+        <h1 id="auth-endpoints">🔑 Authentication Endpoints</h1>
+        <p><strong>Base Path:</strong> <code>/api/v1/auth</code></p>
+
+        <!-- Create Account -->
+        <div class="endpoint">
+            <span class="endpoint-badge method-post">POST</span>
+            <span class="endpoint-url">/auth/create-account</span>
+        </div>
+        <p>Creates a new user account with an automatically generated savings account.</p>
+        
+        <h4>Request Body</h4>
+        <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>name</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Full name</td></tr>
+                <tr><td><code>phone</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Phone number</td></tr>
+                <tr><td><code>email</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Email address</td></tr>
+                <tr><td><code>bvn</code></td><td>number</td><td><span class="badge badge-required">Required</span></td><td>Bank Verification Number</td></tr>
+                <tr><td><code>nin</code></td><td>number</td><td><span class="badge badge-required">Required</span></td><td>National Identification Number</td></tr>
+                <tr><td><code>password</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Account password</td></tr>
+                <tr><td><code>age</code></td><td>number</td><td><span class="badge badge-optional">Optional</span></td><td>User age (default: 0)</td></tr>
+                <tr><td><code>address</code></td><td>string</td><td><span class="badge badge-optional">Optional</span></td><td>User address</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Example Request</h4>
+        <pre><code>{
+  "name": "John Doe",
+  "phone": "08012345678",
+  "email": "johndoe@gmail.com",
+  "bvn": 12345678901,
+  "nin": 12345678901,
+  "password": "securepassword",
+  "age": 25,
+  "address": "123 Main Street, Lagos"
+}</code></pre>
+
+        <h4>Success Response (201 Created)</h4>
+        <pre><code>{
+  "message": "User Registred, Welcome to Entity Bank \n copy your account below",
+  "account": 2026250903
+}</code></pre>
+
+        <!-- Login -->
+        <div class="endpoint">
+            <span class="endpoint-badge method-post">POST</span>
+            <span class="endpoint-url">/auth/login</span>
+        </div>
+        
+        <h4>Request Body</h4>
+        <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>accountNo</code></td><td>number</td><td><span class="badge badge-required">Required</span></td><td>Account number</td></tr>
+                <tr><td><code>password</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Account password</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Success Response (200 OK)</h4>
+        <pre><code>{
+  "message": "logged in paa, welcome back",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}</code></pre>
+
+        <!-- User Endpoints -->
+        <h1 id="user-endpoints">👤 User Endpoints</h1>
+        <p><strong>Base Path:</strong> <code>/api/v1/user</code><br>
+        <strong>Authentication:</strong> ✅ Required (Bearer token)</p>
+
+        <!-- Get Balance -->
+        <div class="endpoint">
+            <span class="endpoint-badge method-get">GET</span>
+            <span class="endpoint-url">/user/balance</span>
+        </div>
+        
+        <h4>Success Response</h4>
+        <pre><code>{
+  "name": "JOHN DOE",
+  "acc_number": 2026250903,
+  "balance": "N5000.00"
+}</code></pre>
+
+        <!-- Get Profile -->
+        <div class="endpoint">
+            <span class="endpoint-badge method-get">GET</span>
+            <span class="endpoint-url">/user/profile</span>
+        </div>
+
+        <h4>Success Response</h4>
+        <pre><code>{
+  "id": 3,
+  "fullname": "James Doe",
+  "phone": "012101010",
+  "email": "jamesdoe@gmail.com",
+  "address": "mini campus",
+  "age": 19,
+  "nin": 19235698,
+  "bvn": 1239456,
+  "account": {
+    "number": 2026250902,
+    "status": "active",
+    "balance": 1000,
+    "type": "Savings"
+  }
+}</code></pre>
+
+        <!-- Edit Profile -->
+        <div class="endpoint">
+            <span class="endpoint-badge method-patch">PATCH</span>
+            <span class="endpoint-url">/user/edit-profile</span>
+        </div>
+
+        <div class="alert alert-warning">
+            <strong>Note:</strong> Account number cannot be changed.
+        </div>
+
+        <!-- Transfer Money -->
+        <div class="endpoint">
+            <span class="endpoint-badge method-post">POST</span>
+            <span class="endpoint-url">/user/transfer</span>
+        </div>
+
+        <h4>Fee Structure</h4>
+        <table>
+            <thead><tr><th>Amount Range</th><th>Fee Calculation</th></tr></thead>
+            <tbody>
+                <tr><td>Less than ₦20,000</td><td>₦10 (base fee)</td></tr>
+                <tr><td>₦20,000 - ₦49,999</td><td>₦30 (₦10 + ₦20)</td></tr>
+                <tr><td>₦50,000 - ₦99,999</td><td class="alert-danger">₦-30 (₦10 - ₦40) ⚠️ Negative fee bug</td></tr>
+                <tr><td>₦100,000 and above</td><td>₦100 (₦10 + ₦90)</td></tr>
+                <tr><td>Classique account</td><td>Fee waived (₦0)</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Request Body</h4>
+        <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>amount</code></td><td>number</td><td><span class="badge badge-required">Required</span></td><td>Amount to transfer</td></tr>
+                <tr><td><code>reciever</code></td><td>number</td><td><span class="badge badge-required">Required</span></td><td>Recipient's account number</td></tr>
+                <tr><td><code>password</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Account password for verification</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Success Response</h4>
+        <pre><code>{
+  "message": "transaction succesful",
+  "trans_amount": "₦5010 incl. ₦10fee",
+  "trxid": "trans-abc123-def456"
+}</code></pre>
+
+        <!-- Buy Airtime -->
+        <div class="endpoint">
+            <span class="endpoint-badge method-post">POST</span>
+            <span class="endpoint-url">/user/airtime</span>
+        </div>
+
+        <h4>Request Body</h4>
+        <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>network</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Mobile network (MTN, GLO, AIRTEL, 9MOBILE)</td></tr>
+                <tr><td><code>phone</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Phone number (11-13 digits)</td></tr>
+                <tr><td><code>amount</code></td><td>number</td><td><span class="badge badge-required">Required</span></td><td>Amount to purchase</td></tr>
+                <tr><td><code>password</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Account password</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Success Response</h4>
+        <pre><code>{
+  "message": "₦1000 Airtime top up successful",
+  "transactionId": "topup-abc123def456"
+}</code></pre>
+
+        <!-- Buy Data -->
+        <div class="endpoint">
+            <span class="endpoint-badge method-post">POST</span>
+            <span class="endpoint-url">/user/data</span>
+        </div>
+
+        <h4>Request Body</h4>
+        <table>
+            <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>network</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Mobile network</td></tr>
+                <tr><td><code>phone</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Phone number (11-13 digits)</td></tr>
+                <tr><td><code>plan</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Data plan name</td></tr>
+                <tr><td><code>amount</code></td><td>number</td><td><span class="badge badge-required">Required</span></td><td>Amount to pay</td></tr>
+                <tr><td><code>password</code></td><td>string</td><td><span class="badge badge-required">Required</span></td><td>Account password</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Success Response</h4>
+        <pre><code>{
+  "message": "1GB Daily Plan Data top up successful",
+  "transactionId": "topup-abc123def456"
+}</code></pre>
+
+        <!-- Get Receiver Name -->
+        <div class="endpoint">
+            <span class="endpoint-badge method-post">POST</span>
+            <span class="endpoint-url">/user/get-receiverName</span>
+        </div>
+
+        <div class="alert alert-success">
+            <strong>✅ Fixed:</strong> Changed from GET to POST for proper REST convention.
+        </div>
+
+        <!-- Error Codes -->
+        <h1 id="error-codes">⚠️ Error Codes</h1>
+        <table>
+            <thead><tr><th>Status Code</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td>200</td><td>Success (with data or message)</td></tr>
+                <tr><td>201</td><td>Created successfully</td></tr>
+                <tr><td>400</td><td>Bad Request (missing/invalid fields)</td></tr>
+                <tr><td>401</td><td>Unauthorized (authentication failed)</td></tr>
+                <tr><td>403</td><td>Forbidden (insufficient permissions/balance)</td></tr>
+                <tr><td>404</td><td>Not Found (resource doesn't exist)</td></tr>
+                <tr><td>500</td><td>Internal Server Error</td></tr>
+            </tbody>
+        </table>
+
+        <!-- Postman Collection -->
+        <h1 id="postman">📬 Postman Collection</h1>
+        
+        <h3>Collection Variables</h3>
+        <table>
+            <thead><tr><th>Variable</th><th>Value</th></tr></thead>
+            <tbody>
+                <tr><td><code>base_url</code></td><td><code>http://localhost:3060</code></td></tr>
+                <tr><td><code>token</code></td><td>(Set after login)</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Quick Import</h3>
+        <div class="alert alert-info">
+            <strong>Instructions:</strong> Open Postman → Import → Raw text → Paste the JSON below → Continue → Import
+        </div>
+
+        <details>
+            <summary style="cursor: pointer; font-weight: bold; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+                📋 Click to expand Postman Collection JSON
+            </summary>
+            <pre><code>{
+  "info": {
+    "name": "Banking & Data Topup API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Create Account",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/create-account",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"phone\": \"08012345678\",\n  \"email\": \"john@example.com\",\n  \"bvn\": 12345678901,\n  \"nin\": 12345678901,\n  \"password\": \"securepass\",\n  \"age\": 25,\n  \"address\": \"Lagos, Nigeria\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNo\": 2026250903,\n  \"password\": \"securepass\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Operations",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/user/balance",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}]
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/user/profile",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}]
+          }
+        },
+        {
+          "name": "Transfer Money",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/user/transfer",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5000,\n  \"reciever\": 2026250901,\n  \"password\": \"securepass\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Buy Airtime",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/user/airtime",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"network\": \"MTN\",\n  \"phone\": \"08012345678\",\n  \"amount\": 1000,\n  \"password\": \"securepass\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Buy Data",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/user/data",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"network\": \"MTN\",\n  \"phone\": \"08012345678\",\n  \"plan\": \"1GB Daily\",\n  \"amount\": 500,\n  \"password\": \"securepass\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Receiver Name",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/user/get-receiverName",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": 2026250902\n}"
+            }
+          }
+        },
+        {
+          "name": "Transaction History",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/user/transactions",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "http://localhost:3060"},
+    {"key": "token", "value": ""}
+  ]
+}</code></pre>
+        </details>
+
+        <!-- Changelog -->
+        <h1 id="changelog">📝 Changelog</h1>
+        
+        <h3>Version 1.0.0 (Current)</h3>
+        <div class="alert alert-success">
+            <strong>✅ Fixed Issues:</strong>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>Phone number validation in <code>/user/data</code> endpoint (now accepts 11-13 digits)</li>
+                <li>Changed <code>/get-accountName</code> to <code>POST /get-receiverName</code> for proper REST convention</li>
+            </ul>
+        </div>
+
+        <div class="alert alert-warning">
+            <strong>⚠️ Known Issues (To Be Fixed):</strong>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>Fee calculation produces negative values for ₦50,000 - ₦99,999 transfers</li>
+                <li>Passwords stored in plain text (should be hashed with bcrypt)</li>
+                <li>No token refresh or logout mechanism</li>
+                <li>Delete account endpoint not implemented</li>
+            </ul>
+        </div>
+
+        <!-- Endpoints Summary -->
+        <h1>📊 Endpoints Summary</h1>
+        <table>
+            <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Auth</th></tr></thead>
+            <tbody>
+                <tr><td>POST</td><td>/auth/create-account</td><td>Register new user</td><td>❌ No</td></tr>
+                <tr><td>POST</td><td>/auth/login</td><td>User login</td><td>❌ No</td></tr>
+                <tr><td>GET</td><td>/user/balance</td><td>Check balance</td><td>✅ Yes</td></tr>
+                <tr><td>GET</td><td>/user/profile</td><td>Get profile</td><td>✅ Yes</td></tr>
+                <tr><td>PATCH</td><td>/user/edit-profile</td><td>Update profile</td><td>✅ Yes</td></tr>
+                <tr><td>GET</td><td>/user/transactions</td><td>Transaction history</td><td>✅ Yes</td></tr>
+                <tr><td>GET</td><td>/user/transactions/:id</td><td>Single transaction</td><td>✅ Yes</td></tr>
+                <tr><td>GET</td><td>/user/deposit</td><td>Deposit instructions</td><td>✅ Yes</td></tr>
+                <tr><td>POST</td><td>/user/get-receiverName</td><td>Get receiver name</td><td>❌ No</td></tr>
+                <tr><td>POST</td><td>/user/transfer</td><td>Send money</td><td>✅ Yes</td></tr>
+                <tr><td>POST</td><td>/user/airtime</td><td>Buy airtime</td><td>✅ Yes</td></tr>
+                <tr><td>POST</td><td>/user/data</td><td>Buy data</td><td>✅ Yes</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>© 2026 Banking & Data Topup API | Documentation Version 1.0.0</p>
+        <p>For issues or questions, please contact the development team.</p>
+    </div>
+</div>
+</body>
+</html>

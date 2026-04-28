@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+  <h3>Data</h3>
+
+  <select id="network">
+    <option>MTN</option>
+  </select>
+
+  <input id="phone" placeholder="Phone">
+  <input id="plan" placeholder="Plan">
+  <input id="amount" placeholder="Amount">
+  <input id="password" type="password">
+
+  <button onclick="buyData()">Buy</button>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+async function buyData(){
+  const res = await apiRequest("/user/data", "POST", {
+    network: network.value,
+    phone: phone.value,
+    plan: plan.value,
+    amount: amount.value,
+    password: password.value
+  });
+
+  alert(res.message);
+}
+</script>
+</body>
+</html>
