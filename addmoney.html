@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add Money – Entity Bank</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background-color: #0F172A;
+      color: #F1F5F9;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* Subtle background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,200,150,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,150,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page-wrapper {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Skeleton shimmer */
+    @keyframes shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #1E293B 25%, #263548 50%, #1E293B 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.6s infinite linear;
+      border-radius: 8px;
+    }
+
+    /* Copy button hover ring */
+    .copy-btn {
+      transition: all 0.2s ease;
+      border: 1px solid #334155;
+    }
+    .copy-btn:hover {
+      border-color: #00C896;
+      box-shadow: 0 0 0 3px rgba(0,200,150,0.15);
+    }
+    .copy-btn:active {
+      transform: scale(0.93);
+    }
+
+    /* Done button */
+    .done-btn {
+      background: #00C896;
+      transition: all 0.2s ease;
+      letter-spacing: 0.02em;
+    }
+    .done-btn:hover {
+      background: #00daa7;
+      box-shadow: 0 0 24px rgba(0,200,150,0.35);
+      transform: translateY(-1px);
+    }
+    .done-btn:active {
+      transform: translateY(0px);
+      box-shadow: none;
+    }
+
+    /* Account number pulse on load */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up {
+      animation: fadeUp 0.45s ease forwards;
+    }
+
+    /* Toast */
+    #toast {
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform: translateY(80px);
+      opacity: 0;
+      pointer-events: none;
+    }
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Back button hover */
+    .back-btn {
+      transition: all 0.2s ease;
+    }
+    .back-btn:hover {
+      background: rgba(51,65,85,0.6);
+    }
+    .back-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* Bank icon ring glow */
+    .bank-icon-wrap {
+      box-shadow: 0 0 0 8px rgba(13,92,99,0.25), 0 0 30px rgba(0,200,150,0.12);
+    }
+
+    /* Account number tracking */
+    .acct-number {
+      letter-spacing: 0.12em;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrapper max-w-[480px] mx-auto px-4 pb-10 pt-6 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="flex items-center gap-3 mb-2">
+    <button
+      id="backBtn"
+      class="back-btn w-9 h-9 flex items-center justify-center rounded-xl border border-[#334155] bg-[#1E293B]"
+      aria-label="Go back"
+    >
+      <i data-lucide="arrow-left" class="w-4 h-4 text-[#F1F5F9]"></i>
+    </button>
+    <h1 class="text-base font-semibold tracking-wide text-[#F1F5F9]">Add Money</h1>
+  </header>
+
+  <!-- Main Card -->
+  <main class="bg-[#1E293B] rounded-2xl p-6 mt-5 border border-[#334155] flex-1 flex flex-col">
+
+    <!-- Bank Icon -->
+    <div class="flex justify-center mb-5">
+      <div class="bank-icon-wrap w-16 h-16 rounded-full bg-[#0D5C63] flex items-center justify-center">
+        <i data-lucide="landmark" class="w-7 h-7 text-[#00C896]"></i>
+      </div>
+    </div>
+
+    <!-- Title & Subtitle -->
+    <div class="text-center mb-6">
+      <h2 class="text-xl font-bold text-[#F1F5F9] mb-1">Fund Your Account</h2>
+      <p class="text-sm text-gray-400 leading-relaxed">Use the account number below to add money</p>
+    </div>
+
+    <!-- Account Number Box -->
+    <div class="bg-[#0F172A] border border-[#334155] rounded-xl p-4">
+      <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-widest">Account Number</p>
+
+      <div class="flex items-center justify-between gap-3">
+
+        <!-- Skeleton or account number -->
+        <div id="acctSkeleton" class="skeleton h-8 w-44 rounded-lg"></div>
+        <p
+          id="acctNumber"
+          class="acct-number text-2xl font-bold text-[#F1F5F9] hidden fade-up"
+          aria-live="polite"
+        >—</p>
+
+        <!-- Copy Button -->
+        <button
+          id="copyBtn"
+          class="copy-btn flex-shrink-0 w-9 h-9 rounded-xl bg-[#1E293B] flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+          aria-label="Copy account number"
+          disabled
+        >
+          <i id="copyIcon" data-lucide="copy" class="w-4 h-4 text-[#00C896]"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Error message (hidden by default) -->
+    <div
+      id="errorMsg"
+      class="hidden mt-3 flex items-center gap-2 text-red-400 text-sm bg-red-900/20 border border-red-800/40 rounded-xl px-4 py-3"
+    >
+      <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+      <span>Unable to load account number. Please try again.</span>
+    </div>
+
+    <!-- Info Box -->
+    <div class="mt-6 bg-[#0D5C63]/30 border border-[#0D5C63]/50 rounded-xl p-4 flex gap-3 items-start">
+      <div class="flex-shrink-0 mt-0.5">
+        <i data-lucide="info" class="w-4 h-4 text-[#00C896]"></i>
+      </div>
+      <p class="text-sm text-[#94A3B8] leading-relaxed">
+        To fund your account, send this account number to an
+        <span class="text-[#F1F5F9] font-medium">Entity Bank agent</span>.
+        Your wallet will be credited instantly.
+      </p>
+    </div>
+
+    <!-- Spacer -->
+    <div class="flex-1 min-h-[32px]"></div>
+
+    <!-- Done Button -->
+    <button
+      id="doneBtn"
+      class="done-btn w-full mt-8 py-3.5 rounded-xl text-[#0F172A] font-bold text-sm"
+    >
+      Done
+    </button>
+
+  </main>
+
+</div>
+
+<!-- Toast -->
+<div
+  id="toast"
+  class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-[#22C55E] text-white text-sm font-semibold px-5 py-3 rounded-full shadow-xl"
+  role="alert"
+  aria-live="assertive"
+>
+  <i data-lucide="check" class="w-4 h-4"></i>
+  <span>Copied!</span>
+</div>
+
+<script>
+  // ── Init Lucide icons ──────────────────────────────────────────────────
+  lucide.createIcons();
+
+  // ── State ──────────────────────────────────────────────────────────────
+  const API_BASE   = 'http://localhost:3060/api/v1';
+  let accountNumber = null;
+  let toastTimer    = null;
+  let copyResetTimer = null;
+
+  // ── DOM refs ───────────────────────────────────────────────────────────
+  const acctSkeleton = document.getElementById('acctSkeleton');
+  const acctNumber   = document.getElementById('acctNumber');
+  const copyBtn      = document.getElementById('copyBtn');
+  const copyIcon     = document.getElementById('copyIcon');
+  const errorMsg     = document.getElementById('errorMsg');
+  const toast        = document.getElementById('toast');
+  const backBtn      = document.getElementById('backBtn');
+  const doneBtn      = document.getElementById('doneBtn');
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+  function showToast () {
+    clearTimeout(toastTimer);
+    toast.classList.add('show');
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  function setCopyIconCheck () {
+    clearTimeout(copyResetTimer);
+    copyIcon.setAttribute('data-lucide', 'check');
+    lucide.createIcons();
+    copyIcon.style.color = '#F1F5F9';
+    copyResetTimer = setTimeout(() => {
+      copyIcon.setAttribute('data-lucide', 'copy');
+      lucide.createIcons();
+      copyIcon.style.color = '#00C896';
+    }, 2000);
+  }
+
+  function showAccount (num) {
+    acctSkeleton.classList.add('hidden');
+    acctNumber.textContent = num;
+    acctNumber.classList.remove('hidden');
+    copyBtn.disabled = false;
+  }
+
+  function showError () {
+    acctSkeleton.classList.add('hidden');
+    errorMsg.classList.remove('hidden');
+  }
+
+  function navigate (path) {
+    window.location.href = path;
+  }
+
+  // ── Auth guard ─────────────────────────────────────────────────────────
+  const token = localStorage.getItem('token');
+  if (!token) {
+    navigate('login.html');
+  }
+
+  // ── Fetch account number ───────────────────────────────────────────────
+  async function fetchDeposit () {
+    try {
+      const res = await axios.get(`${API_BASE}/user/deposit`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 12000
+      });
+
+      const num = res?.data?.accountNumber;
+      if (num) {
+        accountNumber = String(num);
+        showAccount(accountNumber);
+      } else {
+        showError();
+      }
+    } catch (err) {
+      console.error('Deposit fetch error:', err);
+      showError();
+    }
+  }
+
+  fetchDeposit();
+
+  // ── Copy handler ───────────────────────────────────────────────────────
+  copyBtn.addEventListener('click', async () => {
+    if (!accountNumber) return;
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(accountNumber);
+      } else {
+        // Fallback for non-secure contexts
+        const ta = document.createElement('textarea');
+        ta.value = accountNumber;
+        ta.style.position = 'fixed';
+        ta.style.opacity  = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      showToast();
+      setCopyIconCheck();
+    } catch (e) {
+      console.error('Copy failed:', e);
+    }
+  });
+
+  // ── Navigation ─────────────────────────────────────────────────────────
+  backBtn.addEventListener('click', () => navigate('dashboard.html'));
+  doneBtn.addEventListener('click', () => navigate('dashboard.html'));
+</script>
+</body>
+</html>

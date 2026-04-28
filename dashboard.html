@@ -381,11 +381,11 @@
 
       list.classList.remove('hidden');
 
-      const myAccountNo = localStorage.getItem('accountNumber')
+      const myAccountNo = JSON.parse(localStorage.getItem('accountNumber'))
 
       const html = txns.map((tx, i) => {
         // tx.type === 'DEBIT'
-        const isDebit  = tx.sender.accountNumber === myAccountNo.toString();
+        const isDebit  = tx.sender.accountNumber === myAccountNo;
         const amtColor = isDebit ? '#EF4444' : '#22C55E';
         const amtSign  = isDebit ? '−' : '+';
         const iconName = isDebit ? 'arrow-up-right' : 'arrow-down-left';
