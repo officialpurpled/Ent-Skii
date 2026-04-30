@@ -1,31 +1,477 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Entity Bank | Dashboard</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entity Bank – Dashboard</title>
+  <script src="lib/tailwind.js"></script>
+  <script src="lib/axios.min.js"></script>
+  <script src="lib/lucide.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: #0F172A; color: #F1F5F9; }
+
+    /* Skeleton shimmer */
+    @keyframes shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #1E293B 25%, #273548 50%, #1E293B 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s infinite linear;
+      border-radius: 8px;
+    }
+
+    /* Slide up entrance */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .slide-up { animation: slideUp 0.45s ease both; }
+    .slide-up-d1 { animation-delay: 0.06s; }
+    .slide-up-d2 { animation-delay: 0.12s; }
+    .slide-up-d3 { animation-delay: 0.18s; }
+    .slide-up-d4 { animation-delay: 0.24s; }
+    .slide-up-d5 { animation-delay: 0.30s; }
+
+    /* Balance card gradient shimmer overlay */
+    .card-shine {
+      background: linear-gradient(135deg, #0D5C63 0%, #0a4a50 50%, #0D5C63 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .card-shine::before {
+      content: '';
+      position: absolute;
+      top: -60%;
+      left: -60%;
+      width: 80%;
+      height: 220%;
+      background: rgba(255,255,255,0.04);
+      transform: rotate(25deg);
+      pointer-events: none;
+    }
+
+    /* Bottom nav active indicator */
+    .nav-item.active i { color: #00C896; }
+    .nav-item.active span { color: #00C896; }
+    .nav-item i { color: #94A3B8; }
+    .nav-item span { color: #94A3B8; }
+
+    /* Pulse badge */
+    @keyframes pulse-badge {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.15); }
+    }
+    .pulse-badge { animation: pulse-badge 2s ease infinite; }
+
+    /* Scrollable transaction list */
+    .tx-scroll::-webkit-scrollbar { width: 0; }
+    .tx-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Action button hover */
+    .action-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+    .action-btn { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+
+    /* Add Money hover */
+    .add-money-btn:hover { background: #00dba6; }
+    .add-money-btn { transition: background 0.18s ease; }
+
+    /* Circular avatar ring */
+    .avatar-ring {
+      background: linear-gradient(135deg, #00C896, #0D5C63);
+      padding: 2px;
+      border-radius: 9999px;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              bg:      '#0F172A',
+              card:    '#0D5C63',
+              accent:  '#00C896',
+              surface: '#1E293B',
+              text:    '#F1F5F9',
+              debit:   '#EF4444',
+              credit:  '#22C55E',
+              muted:   '#94A3B8',
+            }
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body>
-  <div class="container">
-    <h3 id="name">Hello</h3>
+<body class="min-h-screen flex justify-center" style="background:#0F172A;">
 
-    <div class="card">
-      <h1 id="balance">₦0.00</h1>
-      <p id="account">0000000000</p>
-    </div>
+  <!-- App Shell: max 480px -->
+  <div class="w-full max-w-[480px] relative flex flex-col min-h-screen pb-24" id="app">
 
-    <div class="card">
-      <button onclick="location.href='transfer.html'">Transfer</button>
-      <button>Airtime</button>
-      <button>Data</button>
-    </div>
+    <!-- ════════════ TOP BAR ════════════ -->
+    <header class="flex items-center justify-between px-5 pt-12 pb-4 slide-up" data-testid="top-bar">
 
-    <h4>Recent Transactions</h4>
-    <div id="transactions"></div>
-  </div>
+      <!-- Left: avatar + greeting -->
+      <div class="flex items-center gap-3">
+        <div class="avatar-ring" data-testid="avatar-ring">
+          <div id="avatar-wrap" class="w-10 h-10 rounded-full overflow-hidden bg-brand-surface flex items-center justify-center">
+            <div class="skeleton w-10 h-10 rounded-full" id="avatar-skeleton"></div>
+            <img id="avatar-img" src="" alt="Profile" class="w-10 h-10 object-cover rounded-full hidden" data-testid="avatar-img" />
+          </div>
+        </div>
+        <div>
+          <p class="text-xs text-brand-muted font-medium">Good day 👋</p>
+          <p class="text-sm font-700 text-brand-text leading-tight" id="user-greeting" data-testid="user-greeting">
+            <span class="skeleton inline-block w-28 h-4 rounded" id="name-skeleton"></span>
+          </p>
+        </div>
+      </div>
 
-  <script src="js/api.js"></script>
-  <script src="js/dashboard.js"></script>
+      <!-- Right: Bell + Headset -->
+      <div class="flex items-center gap-3">
+        <!-- Bell with badge -->
+        <button class="relative w-9 h-9 rounded-full bg-brand-surface flex items-center justify-center" data-testid="bell-btn" onclick="console.log('notifications')">
+          <i data-lucide="bell" class="w-4 h-4 text-brand-muted"></i>
+          <span class="pulse-badge absolute top-1 right-1 w-2 h-2 bg-brand-accent rounded-full"></span>
+        </button>
+        <!-- Headset -->
+        <button class="w-9 h-9 rounded-full bg-brand-surface flex items-center justify-center" data-testid="support-btn" onclick="console.log('support')">
+          <i data-lucide="headphones" class="w-4 h-4 text-brand-muted"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ════════════ BALANCE CARD ════════════ -->
+    <section class="px-5 mt-1 slide-up slide-up-d1" data-testid="balance-card">
+      <div class="card-shine rounded-2xl p-6 relative">
+
+        <!-- Top row: label + eye -->
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-semibold text-white/70 tracking-wide uppercase">Available Balance</span>
+          <button id="eye-btn" onclick="toggleBalance()" data-testid="eye-toggle" class="text-white/60 hover:text-white transition-colors">
+            <i data-lucide="eye" id="eye-icon" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Balance amount -->
+        <div class="mb-5">
+          <p class="text-3xl font-800 text-white tracking-tight leading-none" id="balance-display" data-testid="balance-display">
+            <span class="skeleton inline-block w-40 h-8 rounded" id="balance-skeleton"></span>
+          </p>
+        </div>
+
+        <!-- Bottom: tx history + add money -->
+        <div class="flex items-center justify-between">
+          <a href="transactions.html" class="flex items-center gap-1 text-xs font-semibold text-white/70 hover:text-white transition-colors" data-testid="tx-history-link">
+            Transaction History
+            <i data-lucide="chevron-right" class="w-3 h-3"></i>
+          </a>
+
+          <button
+            onclick="window.location.href='addmoney.html'"
+            class="add-money-btn flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-700 text-[#0F172A]"
+            style="background:#00C896;"
+            data-testid="add-money-btn"
+          >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Add Money
+          </button>
+        </div>
+
+        <!-- Decorative circles -->
+        <div class="absolute -top-6 -right-6 w-28 h-28 rounded-full opacity-10" style="background:#00C896;"></div>
+        <div class="absolute -bottom-10 -left-8 w-36 h-36 rounded-full opacity-5" style="background:#F1F5F9;"></div>
+      </div>
+    </section>
+
+    <!-- ════════════ 3 ACTION BUTTONS ════════════ -->
+    <section class="px-5 mt-6 slide-up slide-up-d2" data-testid="action-buttons">
+      <div class="grid grid-cols-3 gap-4">
+
+        <!-- Transfer -->
+        <button
+          onclick="window.location.href='transfer.html'"
+          class="action-btn flex flex-col items-center justify-center gap-2 py-4 rounded-xl"
+          style="background:#1E293B;"
+          data-testid="transfer-btn"
+        >
+          <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,200,150,0.12);">
+            <i data-lucide="send" class="w-5 h-5" style="color:#00C896;"></i>
+          </div>
+          <span class="text-xs font-600 text-brand-text">Transfer</span>
+        </button>
+
+        <!-- Airtime -->
+        <button
+          onclick="console.log('airtime')"
+          class="action-btn flex flex-col items-center justify-center gap-2 py-4 rounded-xl"
+          style="background:#1E293B;"
+          data-testid="airtime-btn"
+        >
+          <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,200,150,0.12);">
+            <i data-lucide="phone" class="w-5 h-5" style="color:#00C896;"></i>
+          </div>
+          <span class="text-xs font-600 text-brand-text">Airtime</span>
+        </button>
+
+        <!-- Data -->
+        <button
+          onclick="console.log('data')"
+          class="action-btn flex flex-col items-center justify-center gap-2 py-4 rounded-xl"
+          style="background:#1E293B;"
+          data-testid="data-btn"
+        >
+          <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,200,150,0.12);">
+            <i data-lucide="wifi" class="w-5 h-5" style="color:#00C896;"></i>
+          </div>
+          <span class="text-xs font-600 text-brand-text">Data</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ════════════ RECENT TRANSACTIONS ════════════ -->
+    <section class="px-5 mt-8 slide-up slide-up-d3 flex-1" data-testid="recent-transactions">
+
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-700 text-brand-text">Recent Transactions</h2>
+        <a href="transactions.html" class="text-xs font-600" style="color:#00C896;" data-testid="see-all-link">See all</a>
+      </div>
+
+      <!-- Skeleton list -->
+      <div id="tx-skeleton" class="flex flex-col gap-3">
+        <div class="skeleton h-14 rounded-xl"></div>
+        <div class="skeleton h-14 rounded-xl"></div>
+        <div class="skeleton h-14 rounded-xl"></div>
+        <div class="skeleton h-14 rounded-xl"></div>
+        <div class="skeleton h-14 rounded-xl"></div>
+      </div>
+
+      <!-- Actual list -->
+      <div id="tx-list" class="flex flex-col gap-2 hidden tx-scroll" data-testid="tx-list"></div>
+
+      <!-- Empty state -->
+      <div id="tx-empty" class="hidden flex flex-col items-center justify-center py-12 gap-3" data-testid="tx-empty">
+        <div class="w-14 h-14 rounded-full flex items-center justify-center" style="background:#1E293B;">
+          <i data-lucide="inbox" class="w-7 h-7 text-brand-muted"></i>
+        </div>
+        <p class="text-sm text-brand-muted text-center">No transactions yet.<br>Make your first transfer!</p>
+      </div>
+    </section>
+
+  </div><!-- /app -->
+
+  <!-- ════════════ BOTTOM NAV ════════════ -->
+  <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] flex items-center justify-around px-2 py-3 border-t border-white/5" style="background:#1E293B;" data-testid="bottom-nav">
+
+    <button class="nav-item active flex flex-col items-center gap-0.5" onclick="console.log('home')" data-testid="nav-home">
+      <i data-lucide="home" class="w-5 h-5"></i>
+      <span class="text-[10px] font-600">Home</span>
+    </button>
+
+    <button class="nav-item flex flex-col items-center gap-0.5" onclick="console.log('rewards')" data-testid="nav-rewards">
+      <i data-lucide="gift" class="w-5 h-5"></i>
+      <span class="text-[10px] font-600">Rewards</span>
+    </button>
+
+    <button class="nav-item flex flex-col items-center gap-0.5" onclick="console.log('more')" data-testid="nav-more">
+      <i data-lucide="grid-2x2" class="w-5 h-5"></i>
+      <span class="text-[10px] font-600">More</span>
+    </button>
+
+    <button class="nav-item flex flex-col items-center gap-0.5" onclick="console.log('transactions')" data-testid="nav-transactions">
+      <i data-lucide="receipt-text" class="w-5 h-5"></i>
+      <span class="text-[10px] font-600">Transactions</span>
+    </button>
+
+    <button class="nav-item flex flex-col items-center gap-0.5" onclick="console.log('me')" data-testid="nav-me">
+      <i data-lucide="user-round" class="w-5 h-5"></i>
+      <span class="text-[10px] font-600">Me</span>
+    </button>
+
+  </nav>
+
+  <script>
+    /* ───────────── CONFIG ───────────── */
+    const API_BASE = 'http://localhost:3060/api/v1';
+
+    /* ───────────── STATE ───────────── */
+    let balanceVisible = true;
+    let rawBalance = null;
+
+    /* ───────────── HELPERS ───────────── */
+    const fmt = (n) =>
+      '₦' + Number(n).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const fmtDate = (iso) => {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    const authHeaders = () => {
+      const token = localStorage.getItem('token');
+      return { Authorization: `Bearer ${token}` };
+    };
+
+    /* ───────────── AUTH GUARD ───────────── */
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = 'login.html';
+    }
+
+    /* ───────────── BALANCE TOGGLE ───────────── */
+    function toggleBalance() {
+      balanceVisible = !balanceVisible;
+      const display = document.getElementById('balance-display');
+      const icon    = document.getElementById('eye-icon');
+
+      if (rawBalance !== null) {
+        display.textContent = balanceVisible ? fmt(rawBalance) : '****';
+      }
+      icon.setAttribute('data-lucide', balanceVisible ? 'eye' : 'eye-off');
+      lucide.createIcons();
+    }
+
+    /* ───────────── RENDER PROFILE ───────────── */
+    function renderProfile(data) {
+      // Name
+      const greeting = document.getElementById('user-greeting');
+      const skeleton = document.getElementById('name-skeleton');
+      if (skeleton) skeleton.remove();
+      greeting.textContent = `Hi, ${data.fullname}`;
+
+      // Balance
+      rawBalance = data.account?.balance ?? 0;
+      const balanceEl   = document.getElementById('balance-display');
+      const balanceSkel = document.getElementById('balance-skeleton');
+      if (balanceSkel) balanceSkel.remove();
+      balanceEl.textContent = balanceVisible ? fmt(rawBalance) : '****';
+
+      // Avatar
+      const skeletonAvatar = document.getElementById('avatar-skeleton');
+      const avatarImg      = document.getElementById('avatar-img');
+      if (data.picture) {
+        avatarImg.src = data.picture;
+        avatarImg.classList.remove('hidden');
+        if (skeletonAvatar) skeletonAvatar.remove();
+      } else {
+        // Fallback: initials circle
+        const wrap = document.getElementById('avatar-wrap');
+        wrap.innerHTML = `<span class="text-sm font-700 text-brand-accent">${data.fullname.charAt(0).toUpperCase()}</span>`;
+        wrap.style.background = '#0D5C63';
+      }
+    }
+
+    /* ───────────── RENDER TRANSACTIONS ───────────── */
+    function renderTransactions(txns) {
+      const skeleton = document.getElementById('tx-skeleton');
+      const list     = document.getElementById('tx-list');
+      const empty    = document.getElementById('tx-empty');
+
+      skeleton.classList.add('hidden');
+
+      if (!txns || txns.length === 0) {
+        empty.classList.remove('hidden');
+        lucide.createIcons();
+        return;
+      }
+
+      list.classList.remove('hidden');
+
+      const myAccountNo = JSON.parse(
+        localStorage.getItem('accountNumber')
+      ) 
+
+      const html = txns.map((tx, i) => {
+        // tx.type === 'DEBIT'
+        const isDebit  = tx.sender.accountNumber === myAccountNo;
+        const amtColor = isDebit ? '#EF4444' : '#22C55E';
+        const amtSign  = isDebit ? '−' : '+';
+        const iconName = isDebit ? 'arrow-up-right' : 'arrow-down-left';
+        const iconBg   = isDebit ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)';
+        const iconColor= isDebit ? '#EF4444' : '#22C55E';
+        const name     = isDebit
+          ? (tx.receiver.name || 'Unknown')
+          : (tx.sender.name   || 'Unknown');
+
+        return `
+          <div
+            class="flex items-center justify-between px-4 py-3 rounded-xl slide-up"
+            style="background:#1E293B; animation-delay:${0.05 * i}s;"
+            data-testid="tx-item-${tx.id}"
+          >
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background:${iconBg};">
+                <i data-lucide="${iconName}" class="w-5 h-5" style="color:${iconColor};"></i>
+              </div>
+              <div>
+                <p class="text-sm font-600 text-brand-text leading-tight">
+                  ${isDebit ? 'Transfer to' : 'Received from'} ${name}
+                </p>
+                <p class="text-[11px] text-brand-muted mt-0.5">${tx.narration || '—'}</p>
+                <p class="text-[11px] text-brand-muted">${fmtDate(tx.createdAt)}</p>
+              </div>
+            </div>
+            <div class="text-right flex-shrink-0 ml-2">
+              <p class="text-sm font-700" style="color:${amtColor};" data-testid="tx-amount-${tx.id}">
+                ${amtSign}${fmt(isDebit ? tx.totalDebit : tx.amount) || 'Unknown'}
+              </p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      list.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    /* ───────────── FETCH DATA ───────────── */
+    async function loadDashboard() {
+      try {
+        const [profileRes, txRes] = await Promise.allSettled([
+          axios.get(`${API_BASE}/user/profile`,        { headers: authHeaders() }),
+          axios.get(`${API_BASE}/user/transactions`, { headers: authHeaders() }),
+        ]);
+
+        if (profileRes.status === 'fulfilled') {
+          renderProfile(profileRes.value.data);
+        } else {
+          console.error('Profile fetch failed:', profileRes.reason);
+          // If 401, redirect
+          if (profileRes.reason?.response?.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+            return;
+          }
+          // fallback: clear skeletons
+          const s1 = document.getElementById('name-skeleton');
+          const s2 = document.getElementById('balance-skeleton');
+          const s3 = document.getElementById('avatar-skeleton');
+          if (s1) s1.replaceWith(document.createTextNode('User'));
+          if (s2) s2.replaceWith(document.createTextNode('—'));
+          if (s3) s3.remove();
+        }
+
+        if (txRes.status === 'fulfilled') {
+          renderTransactions(txRes.value.data);
+        } else {
+          console.error('Transactions fetch failed:', txRes.reason);
+          renderTransactions([]);
+        }
+
+      } catch (err) {
+        console.error('Dashboard load error:', err);
+      }
+    }
+
+    /* ───────────── BOOT ───────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadDashboard();
+    });
+  </script>
 </body>
 </html>

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transaction Receipt · Entity Bank</title>
+  <!-- <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg:      '#0F172A',
+            card:    '#1E293B',
+            accent:  '#00C896',
+            danger:  '#EF4444',
+            muted:   '#64748B',
+            border:  '#334155',
+            surface: '#263449',
+          },
+          fontFamily: {
+            display: ['Syne', 'sans-serif'],
+            body:    ['DM Sans', 'sans-serif'],
+            mono:    ['DM Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background-color: #0F172A;
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    /* ── Animated mesh background ── */
+    .mesh-bg {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 10%,  rgba(0,200,150,.08) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 35% at 80% 85%,  rgba(0,200,150,.06) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 55% 50%,  rgba(239,68,68,.04) 0%, transparent 70%);
+    }
+
+    /* ── Card reveal animation ── */
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(28px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .card-enter { animation: cardIn .5s cubic-bezier(.22,1,.36,1) both; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .45s cubic-bezier(.22,1,.36,1) both; }
+
+    /* Staggered children */
+    .stagger > *:nth-child(1)  { animation-delay: .08s; }
+    .stagger > *:nth-child(2)  { animation-delay: .14s; }
+    .stagger > *:nth-child(3)  { animation-delay: .20s; }
+    .stagger > *:nth-child(4)  { animation-delay: .26s; }
+    .stagger > *:nth-child(5)  { animation-delay: .32s; }
+    .stagger > *:nth-child(6)  { animation-delay: .38s; }
+    .stagger > *:nth-child(7)  { animation-delay: .44s; }
+
+    /* ── Amount pulse ── */
+    @keyframes amountPulse {
+      0%,100% { text-shadow: 0 0 0 transparent; }
+      50%      { text-shadow: 0 0 24px rgba(0,200,150,.35); }
+    }
+    .amount-accent { animation: amountPulse 3s ease-in-out infinite; }
+    .amount-danger { animation: amountPulse 3s ease-in-out infinite;
+      animation-name: amountPulseDanger; }
+    @keyframes amountPulseDanger {
+      0%,100% { text-shadow: 0 0 0 transparent; }
+      50%      { text-shadow: 0 0 24px rgba(239,68,68,.35); }
+    }
+
+    /* ── Icon ring ── */
+    .icon-ring {
+      position: relative;
+    }
+    .icon-ring::before {
+      content: '';
+      position: absolute; inset: -6px;
+      border-radius: 50%;
+      opacity: .15;
+    }
+    .icon-ring.green::before { background: #00C896; }
+    .icon-ring.red::before   { background: #EF4444; }
+    .icon-ring.blue::before  { background: #38BDF8; }
+    .icon-ring.violet::before{ background: #A78BFA; }
+
+    /* ── Divider dashes ── */
+    .dash-divider {
+      border: none;
+      border-top: 1.5px dashed #334155;
+      margin: 0;
+    }
+
+    /* ── Row hover ── */
+    .receipt-row {
+      transition: background .18s;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin: 0 -12px;
+    }
+    .receipt-row:hover { background: rgba(255,255,255,.03); }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: #00C896;
+      color: #0F172A;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      letter-spacing: .02em;
+      border: none;
+      cursor: pointer;
+      transition: filter .18s, transform .12s;
+    }
+    .btn-primary:hover  { filter: brightness(1.1); }
+    .btn-primary:active { transform: scale(.97); }
+
+    .btn-ghost {
+      background: transparent;
+      color: #94A3B8;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      border: 1.5px solid #334155;
+      cursor: pointer;
+      transition: border-color .18s, color .18s, transform .12s;
+    }
+    .btn-ghost:hover  { border-color: #00C896; color: #00C896; }
+    .btn-ghost:active { transform: scale(.97); }
+
+    /* ── Copy toast ── */
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #1E293B; color: #00C896;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s, transform .25s;
+      white-space: nowrap;
+      z-index: 9999;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Skeleton loader ── */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #1E293B 25%, #263449 50%, #1E293B 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+
+    /* ── Error state ── */
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-6px); }
+      40%     { transform: translateX(6px); }
+      60%     { transform: translateX(-4px); }
+      80%     { transform: translateX(4px); }
+    }
+    .shake { animation: shake .45s ease; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar       { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0F172A; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen px-4 py-10">
+
+  <!-- Atmospheric background -->
+  <div class="mesh-bg"></div>
+
+  <!-- ── Loading skeleton ── -->
+  <div id="skeleton" class="relative z-10 w-full max-w-md card-enter">
+    <div class="rounded-2xl p-8" style="background:#1E293B;">
+      <!-- Header skeleton -->
+      <div class="flex flex-col items-center gap-4 mb-8">
+        <div class="skeleton w-16 h-16 rounded-full"></div>
+        <div class="skeleton h-4 w-24 rounded"></div>
+        <div class="skeleton h-8 w-40 rounded"></div>
+        <div class="skeleton h-5 w-28 rounded"></div>
+      </div>
+      <div class="dash-divider mb-6"></div>
+      <div class="flex flex-col gap-4">
+        <div class="skeleton h-4 w-full rounded"></div>
+        <div class="skeleton h-4 w-3/4 rounded"></div>
+        <div class="skeleton h-4 w-full rounded"></div>
+        <div class="skeleton h-4 w-2/3 rounded"></div>
+      </div>
+      <div class="dash-divider my-6"></div>
+      <div class="skeleton h-4 w-48 rounded mx-auto"></div>
+    </div>
+  </div>
+
+  <!-- ── Error state ── -->
+  <div id="error-state" class="relative z-10 w-full max-w-md hidden">
+    <div class="rounded-2xl p-8 text-center" style="background:#1E293B;">
+      <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+           style="background:rgba(239,68,68,.12);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <p class="text-white font-display font-700 text-lg mb-2">Transaction Not Found</p>
+      <p id="error-msg" class="text-muted text-sm mb-6">Unable to load this transaction.</p>
+      <button onclick="window.location.href='dashboard.html'"
+        class="btn-primary w-full py-3 rounded-xl text-sm">
+        Back to Dashboard
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Receipt card ── -->
+  <div id="receipt" class="relative z-10 w-full max-w-md hidden card-enter">
+    <div class="rounded-2xl overflow-hidden" style="background:#1E293B; box-shadow: 0 24px 64px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04);">
+
+      <!-- Top accent stripe -->
+      <div id="top-stripe" class="h-1 w-full" style="background: linear-gradient(90deg, #00C896, #00a87e);"></div>
+
+      <div class="p-8">
+
+        <!-- ── HEADER ── -->
+        <div class="flex flex-col items-center gap-3 mb-8 stagger">
+
+          <!-- Icon -->
+          <div id="icon-wrap" class="fade-up icon-ring green w-16 h-16 rounded-full flex items-center justify-center" style="background:rgba(0,200,150,.12);">
+            <svg id="tx-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00C896" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></svg>
+          </div>
+
+          <!-- Status badge -->
+          <div class="fade-up flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono"
+               style="background:rgba(0,200,150,.1); color:#00C896; border:1px solid rgba(0,200,150,.2);">
+            <span class="w-1.5 h-1.5 rounded-full bg-accent inline-block" style="box-shadow:0 0 6px #00C896;"></span>
+            Successful
+          </div>
+
+          <!-- Title -->
+          <h1 id="tx-title" class="fade-up font-display font-bold text-white text-xl tracking-tight"></h1>
+
+          <!-- Amount -->
+          <p id="tx-amount" class="fade-up font-display font-extrabold text-4xl tracking-tighter amount-accent"></p>
+
+        </div>
+
+        <!-- ── DASHED DIVIDER ── -->
+        <div class="relative my-6">
+          <hr class="dash-divider" />
+          <!-- Notch left -->
+          <div class="absolute -left-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full" style="background:#0F172A;"></div>
+          <!-- Notch right -->
+          <div class="absolute -right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full" style="background:#0F172A;"></div>
+        </div>
+
+        <!-- ── DETAILS ROWS ── -->
+        <div id="detail-rows" class="flex flex-col gap-0.5 stagger"></div>
+
+        <!-- ── DASHED DIVIDER ── -->
+        <div class="relative my-6">
+          <hr class="dash-divider" />
+          <div class="absolute -left-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full" style="background:#0F172A;"></div>
+          <div class="absolute -right-8 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full" style="background:#0F172A;"></div>
+        </div>
+
+        <!-- ── TRANSACTION ID ── -->
+        <div class="fade-up flex flex-col items-center gap-1 mb-8">
+          <span class="text-muted text-xs uppercase tracking-widest font-mono">Transaction ID</span>
+          <span id="tx-id" class="font-mono text-sm text-slate-300 select-all text-center break-all"></span>
+        </div>
+
+        <!-- ── ACTIONS ── -->
+        <div class="flex flex-col gap-3">
+          <button id="share-btn" onclick="handleShare()"
+            class="btn-primary w-full py-3.5 rounded-xl text-sm flex items-center justify-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+            </svg>
+            Share Receipt
+          </button>
+          <button onclick="window.location.href='dashboard.html'"
+            class="btn-ghost w-full py-3.5 rounded-xl text-sm flex items-center justify-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Done
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ── -->
+  <div id="toast" class="toast">✓ Copied to clipboard</div>
+
+  <script>
+    /* ───────────────────────────────────────────
+       CONFIG
+    ─────────────────────────────────────────── */
+    const API_BASE = 'http://localhost:3060/api/v1';
+    const TOKEN    = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+
+    const axiosInst = axios.create({
+      baseURL: API_BASE,
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
+
+    /* ───────────────────────────────────────────
+       HELPERS
+    ─────────────────────────────────────────── */
+    const fmt = (n) =>
+      '₦' + Number(n).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const fmtDate = (d) => {
+      const dt = new Date(d);
+      return dt.toLocaleString('en-NG', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true,
+      });
+    };
+
+    const mask = (acct) => {
+      if (!acct) return '—';
+      const s = String(acct);
+      return s.slice(0, 3) + '•'.repeat(Math.max(0, s.length - 6)) + s.slice(-3);
+    };
+
+    /* Icon paths */
+    const ICONS = {
+      arrowUpRight:   '<line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>',
+      arrowDownLeft:  '<line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/>',
+      wifi:           '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>',
+      phone:          '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l.98-.98a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 17z"/>',
+    };
+
+    /* ───────────────────────────────────────────
+       BUILD RECEIPT ROWS
+    ─────────────────────────────────────────── */
+    function buildRow(label, value, mono = false) {
+      const div = document.createElement('div');
+      div.className = 'receipt-row fade-up flex items-center justify-between';
+      div.innerHTML = `
+        <span class="text-sm" style="color:#64748B;">${label}</span>
+        <span class="${mono ? 'font-mono text-xs' : 'text-sm font-medium'} text-slate-200 text-right max-w-xs">${value || '—'}</span>
+      `;
+      return div;
+    }
+
+    /* ───────────────────────────────────────────
+       APPLY THEME (debit / credit / data / airtime)
+    ─────────────────────────────────────────── */
+    function applyTheme(type) {
+      const stripe  = document.getElementById('top-stripe');
+      const iconEl  = document.getElementById('tx-icon');
+      const iconWrap = document.getElementById('icon-wrap');
+
+      const themes = {
+        debit: {
+          color: '#EF4444', bg: 'rgba(239,68,68,.12)', ringClass: 'red',
+          icon: ICONS.arrowUpRight,
+          gradient: 'linear-gradient(90deg,#EF4444,#b91c1c)',
+        },
+        credit: {
+          color: '#00C896', bg: 'rgba(0,200,150,.12)', ringClass: 'green',
+          icon: ICONS.arrowDownLeft,
+          gradient: 'linear-gradient(90deg,#00C896,#00a87e)',
+        },
+        data: {
+          color: '#38BDF8', bg: 'rgba(56,189,248,.12)', ringClass: 'blue',
+          icon: ICONS.wifi,
+          gradient: 'linear-gradient(90deg,#38BDF8,#0ea5e9)',
+        },
+        airtime: {
+          color: '#A78BFA', bg: 'rgba(167,139,250,.12)', ringClass: 'violet',
+          icon: ICONS.phone,
+          gradient: 'linear-gradient(90deg,#A78BFA,#7c3aed)',
+        },
+      };
+
+      const t = themes[type] || themes.credit;
+      stripe.style.background = t.gradient;
+      iconWrap.style.background = t.bg;
+      iconWrap.className = `fade-up icon-ring ${t.ringClass} w-16 h-16 rounded-full flex items-center justify-center`;
+      iconEl.setAttribute('stroke', t.color);
+      iconEl.innerHTML = t.icon;
+
+      const amtEl = document.getElementById('tx-amount');
+      if (type === 'debit') {
+        amtEl.style.color = '#EF4444';
+        amtEl.classList.remove('amount-accent');
+        amtEl.classList.add('amount-danger');
+      } else {
+        amtEl.style.color = '#00C896';
+      }
+    }
+
+    /* ───────────────────────────────────────────
+       RENDER
+    ─────────────────────────────────────────── */
+    let receiptText = '';
+
+    function render(tx, myAccountNumber) {
+      const rows   = document.getElementById('detail-rows');
+      const title  = document.getElementById('tx-title');
+      const amount = document.getElementById('tx-amount');
+      const txId   = document.getElementById('tx-id');
+      rows.innerHTML = '';
+
+      const type    = tx.type;
+      const hasPlan = tx.plan != null && tx.plan !== '';
+
+      /* — TRANSFER — */
+      if (type === 'Transfer') {
+        const isDebit = String(tx.senderAccount) === String(myAccountNumber);
+
+        if (isDebit) {
+          applyTheme('debit');
+          title.textContent  = 'Money Sent';
+          amount.textContent = `−${fmt(tx.totalDebit ?? tx.amount)}`;
+
+          rows.append(
+            buildRow('Receiver Name',    tx.receiverName    || tx.beneficiaryName),
+            buildRow('Receiver Account', mask(tx.receiverAccount ?? tx.beneficiaryAccount), true),
+            buildRow('Amount',           fmt(tx.amount)),
+            buildRow('Fee',              fmt(tx.fee ?? 0)),
+            buildRow('Total Debit',      fmt(tx.totalDebit ?? tx.amount)),
+            buildRow('Date',             fmtDate(tx.createdAt ?? tx.date)),
+          );
+
+          receiptText = `Entity Bank — Money Sent\nReceiver: ${tx.receiverName || tx.beneficiaryName}\nAccount: ${tx.receiverAccount ?? tx.beneficiaryAccount}\nAmount: ${fmt(tx.amount)}\nFee: ${fmt(tx.fee ?? 0)}\nTotal: ${fmt(tx.totalDebit ?? tx.amount)}\nDate: ${fmtDate(tx.createdAt ?? tx.date)}\nRef: ${tx._id ?? tx.id}`;
+
+        } else {
+          applyTheme('credit');
+          title.textContent  = 'Money Received';
+          amount.textContent = `+${fmt(tx.amount)}`;
+
+          rows.append(
+            buildRow('Sender Name',    tx.senderName),
+            buildRow('Sender Account', mask(tx.senderAccount), true),
+            buildRow('Amount',         fmt(tx.amount)),
+            buildRow('Date',           fmtDate(tx.createdAt ?? tx.date)),
+          );
+
+          receiptText = `Entity Bank — Money Received\nSender: ${tx.senderName}\nAccount: ${tx.senderAccount}\nAmount: ${fmt(tx.amount)}\nDate: ${fmtDate(tx.createdAt ?? tx.date)}\nRef: ${tx._id ?? tx.id}`;
+        }
+
+      /* — TOPUP — */
+      } else if (type === 'Topup') {
+        if (hasPlan) {
+          applyTheme('data');
+          title.textContent  = 'Data Purchase';
+          amount.textContent = `${fmt(tx.amount)}`;
+
+          rows.append(
+            buildRow('Plan',         tx.plan),
+            buildRow('Network',      tx.network),
+            buildRow('Phone Number', tx.phoneNumber ?? tx.phone),
+            buildRow('Amount',       fmt(tx.amount)),
+            buildRow('Date',         fmtDate(tx.createdAt ?? tx.date)),
+          );
+
+          receiptText = `Entity Bank — Data Purchase\nPlan: ${tx.plan}\nNetwork: ${tx.network}\nPhone: ${tx.phoneNumber ?? tx.phone}\nAmount: ${fmt(tx.amount)}\nDate: ${fmtDate(tx.createdAt ?? tx.date)}\nRef: ${tx._id ?? tx.id}`;
+
+        } else {
+          applyTheme('airtime');
+          title.textContent  = 'Airtime Purchase';
+          amount.textContent = `${fmt(tx.amount)}`;
+
+          rows.append(
+            buildRow('Network',      tx.network),
+            buildRow('Phone Number', tx.phoneNumber ?? tx.phone),
+            buildRow('Amount',       fmt(tx.amount)),
+            buildRow('Date',         fmtDate(tx.createdAt ?? tx.date)),
+          );
+
+          receiptText = `Entity Bank — Airtime Purchase\nNetwork: ${tx.network}\nPhone: ${tx.phoneNumber ?? tx.phone}\nAmount: ${fmt(tx.amount)}\nDate: ${fmtDate(tx.createdAt ?? tx.date)}\nRef: ${tx._id ?? tx.id}`;
+        }
+
+      /* — FALLBACK — */
+      } else {
+        applyTheme('credit');
+        title.textContent  = 'Transaction';
+        amount.textContent = `${fmt(tx.amount)}`;
+        rows.append(buildRow('Date', fmtDate(tx.createdAt ?? tx.date)));
+        receiptText = `Entity Bank\nAmount: ${fmt(tx.amount)}\nRef: ${tx._id ?? tx.id}`;
+      }
+
+      txId.textContent = tx._id ?? tx.id ?? '—';
+
+      /* Show card */
+      document.getElementById('skeleton').classList.add('hidden');
+      document.getElementById('receipt').classList.remove('hidden');
+    }
+
+    /* ───────────────────────────────────────────
+       SHARE / COPY
+    ─────────────────────────────────────────── */
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    async function handleShare() {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Entity Bank Receipt', text: receiptText });
+          return;
+        } catch (_) { /* user cancelled, fall through */ }
+      }
+      try {
+        await navigator.clipboard.writeText(receiptText);
+        showToast('✓ Receipt copied to clipboard');
+      } catch (_) {
+        showToast('⚠ Copy failed — please copy manually');
+      }
+    }
+
+    /* ───────────────────────────────────────────
+       ERROR
+    ─────────────────────────────────────────── */
+    function showError(msg = 'Something went wrong.') {
+      document.getElementById('skeleton').classList.add('hidden');
+      document.getElementById('error-msg').textContent = msg;
+      const el = document.getElementById('error-state');
+      el.classList.remove('hidden');
+      el.classList.add('shake');
+    }
+
+    /* ───────────────────────────────────────────
+       INIT
+    ─────────────────────────────────────────── */
+    (async () => {
+      /* 1. Get ?id= from URL */
+      const params = new URLSearchParams(window.location.search);
+      const txId   = params.get('id');
+
+      if (!txId) { showError('No transaction ID provided.'); return; }
+
+      try {
+        /* 2. Fetch profile (for account number) */
+        const [profileRes, txRes] = await Promise.all([
+          axiosInst.get('/user/profile'),
+          axiosInst.get(`/user/transaction/${txId}`),
+        ]);
+
+        const myAccountNumber = profileRes.data?.data?.accountNumber
+                             ?? profileRes.data?.accountNumber
+                             ?? profileRes.data?.user?.accountNumber;
+
+        const tx = txRes.data?.data ?? txRes.data?.transaction ?? txRes.data;
+
+        if (!tx) { showError('Transaction data not found.'); return; }
+
+        render(tx, String(myAccountNumber));
+
+      } catch (err) {
+        console.error(err);
+        const msg = err?.response?.data?.message ?? err.message ?? 'Failed to load transaction.';
+        showError(msg);
+      }
+    })();
+  </script>
+</body>
+</html>

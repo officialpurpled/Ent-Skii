@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Transactions – Entity Bank</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="lib/tailwind.js"></script>
+  <script src="lib/axios.min.js"></script>
+  <script src="lib/lucide.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -402,19 +402,20 @@
   </div>
 
   <!-- Bottom nav -->
+   <!-- before -->
   <nav id="bottom-nav">
     <a href="dashboard.html" class="nav-item">
       <i data-lucide="home" style="width:22px;height:22px;"></i>
       <span>Home</span>
     </a>
+    <a href="#" class="nav-item">
+      <i data-lucide="gift" style="width:22px;height:22px;"></i>
+      <span>Reward</span>
+    </a>
     <a href="transactions.html" class="nav-item active">
       <i data-lucide="arrow-left-right" style="width:22px;height:22px;"></i>
       <span>Transactions</span>
       <div class="nav-dot"></div>
-    </a>
-    <a href="cards.html" class="nav-item">
-      <i data-lucide="credit-card" style="width:22px;height:22px;"></i>
-      <span>Cards</span>
     </a>
     <a href="profile.html" class="nav-item">
       <i data-lucide="user" style="width:22px;height:22px;"></i>
@@ -422,6 +423,42 @@
     </a>
   </nav>
 
+  <!-- new -->
+   <!-- <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px]
+    flex items-center justify-around px-2 py-3 border-t border-white/5 z-50"
+    style="background:#1E293B;">
+
+    <button class="nav-item flex flex-col items-center gap-0.5"
+      onclick="window.location.href='dashboard.html'">
+      <i data-lucide="home" class="w-5 h-5"></i>
+      <span class="text-[10px] font-semibold">Home</span>
+    </button>
+
+    <button class="nav-item flex flex-col items-center gap-0.5"
+      onclick="showToast('Rewards coming soon')">
+      <i data-lucide="gift" class="w-5 h-5"></i>
+      <span class="text-[10px] font-semibold">Rewards</span>
+    </button>
+
+    <button class="nav-item flex flex-col items-center gap-0.5"
+      onclick="showToast('More coming soon')">
+      <i data-lucide="grid-2x2" class="w-5 h-5"></i>
+      <span class="text-[10px] font-semibold">More</span>
+    </button>
+
+    <button class="nav-item active flex flex-col items-center gap-0.5"
+      onclick="window.location.href='transactions.html'">
+      <i data-lucide="receipt-text" class="w-5 h-5"></i>
+      <span class="text-[10px] font-semibold">Transactions</span>
+    </button>
+
+    <button class="nav-item flex flex-col items-center gap-0.5"
+      onclick="window.location.href='profile.html'">
+      <i data-lucide="user-round" class="w-5 h-5"></i>
+      <span class="text-[10px] font-semibold">Me</span>
+    </button>
+
+  </nav> -->
 </div>
 
 <!-- Error toast -->
@@ -438,9 +475,9 @@
   let filteredTransactions = [];
 
   // ── Auth ──
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  const token = localStorage.getItem('token');
   if (!token) {
-    window.location.href = 'index.html';
+    window.location.href = 'login.html';
   }
 
   const axiosInst = axios.create({
@@ -535,7 +572,7 @@
           ? `Transfer to ${txn.receiverName || 'Unknown'}`
           : `Received from ${txn.senderName || 'Unknown'}`;
         const sign = isDebit ? '-' : '+';
-        const amountStr = sign + formatAmount(txn.amount);
+        const amountStr = sign + formatAmount(isDebit ? txn.totalDebit : txn.amount);
         const timeStr = formatTime(txn.createdAt);
         const icon = isDebit ? '↑' : '↓';
         const narration = txn.narration ? txn.narration.trim() : '';
@@ -568,7 +605,7 @@
   function handleTxnClick(txn) {
     console.log('Transaction:', txn);
     // TODO: navigate to receipt page
-    // window.location.href = `receipt.html?id=${txn.id}`;
+    window.location.href = `receipt.html?id=${txn.id}`;
   }
 
   // ── Search ──
@@ -603,7 +640,7 @@
     try {
       const res = await axiosInst.get('/user/profile');
       const data = res.data;
-      myAccountNumber = data.accountNumber || data.data?.accountNumber || data.user?.accountNumber || null;
+      myAccountNumber = data.account.number
     } catch (err) {
       console.warn('Profile fetch error:', err);
     }

@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transfer Money — Entity Bank</title>
+  <!-- <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:      #0F172A;
+      --card:    #1E293B;
+      --input:   #0F172A;
+      --accent:  #00C896;
+      --accent2: #00a37d;
+      --border:  #334155;
+      --text:    #E2E8F0;
+      --muted:   #64748B;
+      --danger:  #F87171;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── subtle grid pattern ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,200,150,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,150,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .content-wrap { position: relative; z-index: 1; }
+
+    /* ── top nav bar ── */
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .topbar-logo {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: .04em;
+    }
+    .topbar-divider { flex: 1; }
+    .topbar-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .85rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color .2s;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .topbar-back:hover { color: var(--accent); }
+
+    /* ── main card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 40px;
+    }
+
+    /* ── amount display ── */
+    .amount-display {
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      color: var(--text);
+      line-height: 1;
+    }
+    .amount-display .currency {
+      font-size: 1.6rem;
+      color: var(--accent);
+      font-weight: 600;
+      margin-right: 4px;
+    }
+    .amount-display input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+      font-family: inherit;
+      letter-spacing: inherit;
+      width: 100%;
+      caret-color: var(--accent);
+    }
+    .amount-display input::placeholder { color: #334155; }
+
+    /* ── generic input field ── */
+    .field-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .field-label {
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .field-input {
+      background: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .95rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      width: 100%;
+    }
+    .field-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,200,150,.12);
+    }
+    .field-input.error { border-color: var(--danger); }
+    .field-input.success { border-color: var(--accent); }
+    .field-error {
+      font-size: .8rem;
+      color: var(--danger);
+      display: none;
+    }
+    .field-error.show { display: block; }
+
+    /* ── recipient card ── */
+    .recipient-card {
+      background: rgba(0,200,150,.07);
+      border: 1px solid rgba(0,200,150,.3);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+    }
+    .recipient-card.show { display: flex; }
+    .recipient-card.error-card {
+      background: rgba(248,113,113,.07);
+      border-color: rgba(248,113,113,.3);
+    }
+    .recipient-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: .9rem;
+      color: #0F172A;
+      flex-shrink: 0;
+    }
+    .recipient-card.error-card .recipient-avatar {
+      background: var(--danger);
+    }
+    .recipient-label { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .recipient-name { font-weight: 600; font-size: .95rem; color: var(--text); }
+    .recipient-spinner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: .85rem;
+      padding: 4px 0;
+    }
+    .recipient-spinner.show { display: flex; }
+
+    /* ── spinner ring ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-ring {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── continue button ── */
+    .btn-primary {
+      background: var(--accent);
+      color: #0F172A;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: .95rem;
+      border: none;
+      border-radius: 14px;
+      padding: 16px;
+      width: 100%;
+      cursor: pointer;
+      transition: background .2s, transform .12s, opacity .2s;
+      letter-spacing: .01em;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,.15);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .btn-primary:hover:not(:disabled)::after { opacity: 1; }
+    .btn-primary:active:not(:disabled) { transform: scale(.98); }
+    .btn-primary:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    /* ── modal overlay ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.7);
+      backdrop-filter: blur(6px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s;
+    }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      width: 100%;
+      max-width: 420px;
+      transform: translateY(24px) scale(.97);
+      transition: transform .28s cubic-bezier(.34,1.56,.64,1);
+    }
+    .modal-overlay.open .modal-box {
+      transform: translateY(0) scale(1);
+    }
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+    .modal-subtitle {
+      font-size: .875rem;
+      color: var(--muted);
+      margin: 0 0 24px;
+      line-height: 1.5;
+    }
+    .modal-subtitle strong { color: var(--accent); }
+
+    .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+    .btn-ghost {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: .9rem;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn-confirm {
+      flex: 2;
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      padding: 13px;
+      color: #0F172A;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: .9rem;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-confirm:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── toast ── */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      background: #1E293B;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--danger);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: .85rem;
+      max-width: 320px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      animation: slideIn .3s ease;
+    }
+    .toast.success { border-left-color: var(--accent); }
+    @keyframes slideIn {
+      from { transform: translateX(40px); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+
+    /* ── divider ── */
+    .divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+    /* ── section heading ── */
+    .section-heading {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-heading::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── password eye toggle ── */
+    .pw-wrap { position: relative; }
+    .pw-wrap .field-input { padding-right: 44px; }
+    .pw-toggle {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 0;
+      transition: color .2s;
+    }
+    .pw-toggle:hover { color: var(--accent); }
+
+    /* ── amount border animation ── */
+    .amount-row {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px;
+      transition: border-color .2s;
+    }
+    .amount-row:focus-within { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ── -->
+<div class="topbar content-wrap">
+  <span class="topbar-logo">⬡ EntityBank</span>
+  <div class="topbar-divider"></div>
+  <button class="topbar-back" onclick="history.back()">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+    Back to Dashboard
+  </button>
+</div>
+
+<!-- ── PAGE CONTENT ── -->
+<div class="content-wrap flex-1 flex items-start justify-center py-10 px-4">
+  <div style="width:100%; max-width:520px; display:flex; flex-direction:column; gap:20px;">
+
+    <!-- Page header -->
+    <div>
+      <h1 style="font-size:1.6rem;font-weight:700;margin:0 0 4px;">Transfer Money</h1>
+      <p style="font-size:.875rem;color:var(--muted);margin:0;">Send funds instantly to any account</p>
+    </div>
+
+    <!-- Main card -->
+    <div class="card" style="display:flex;flex-direction:column;gap:24px;">
+
+      <!-- Amount -->
+      <div>
+        <div class="section-heading">Amount</div>
+        <div class="amount-row">
+          <div class="amount-display" style="display:flex;align-items:center;">
+            <span class="currency">₦</span>
+            <input
+              type="number"
+              id="amountInput"
+              placeholder="0.00"
+              min="1"
+              inputmode="numeric"
+              autocomplete="off"
+              oninput="validateAmount()"
+            />
+          </div>
+        </div>
+        <div id="amountError" class="field-error" style="margin-top:6px;"></div>
+        <div style="margin-top:8px;font-size:.78rem;color:var(--muted);">
+          Available balance: <span id="balanceDisplay" style="color:var(--accent);font-weight:600;">loading…</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Account Number -->
+      <div class="field-wrap">
+        <label class="field-label" for="accountInput">Recipient Account</label>
+        <input
+          type="text"
+          id="accountInput"
+          class="field-input"
+          placeholder="10-digit account number"
+          maxlength="10"
+          inputmode="numeric"
+          autocomplete="off"
+          oninput="onAccountInput()"
+          onblur="lookupRecipient()"
+        />
+        <div id="accountError" class="field-error"></div>
+
+        <!-- Spinner -->
+        <div class="recipient-spinner" id="recipientSpinner">
+          <div class="spinner-ring"></div>
+          Looking up account…
+        </div>
+
+        <!-- Recipient result card -->
+        <div class="recipient-card" id="recipientCard">
+          <div class="recipient-avatar" id="recipientAvatar">?</div>
+          <div>
+            <div class="recipient-label">Recipient</div>
+            <div class="recipient-name" id="recipientName">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Narration -->
+      <div class="field-wrap">
+        <label class="field-label" for="narrationInput">Narration</label>
+        <input
+          type="text"
+          id="narrationInput"
+          class="field-input"
+          placeholder="What's this for?"
+          maxlength="50"
+          oninput="onNarrationInput()"
+        />
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+          <div id="narrationError" class="field-error"></div>
+          <span id="narrationCount" style="font-size:.72rem;color:var(--muted);margin-left:auto;">0/50</span>
+        </div>
+      </div>
+
+      <!-- Continue button -->
+      <button class="btn-primary" id="continueBtn" disabled onclick="openModal()">
+        Continue
+      </button>
+
+    </div>
+    <!-- /card -->
+
+  </div>
+</div>
+
+<!-- ── PASSWORD MODAL ── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <!-- Icon -->
+    <div style="width:48px;height:48px;border-radius:14px;background:rgba(0,200,150,.12);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+      <svg width="22" height="22" fill="none" stroke="#00C896" stroke-width="2" viewBox="0 0 24 24">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path stroke-linecap="round" d="M7 11V7a5 5 0 0110 0v4"/>
+      </svg>
+    </div>
+
+    <h2 class="modal-title">Confirm Transfer</h2>
+    <p class="modal-subtitle" id="modalSubtitle">
+      Enter your password to send <strong id="modalAmount">₦0</strong> to <strong id="modalRecipient">—</strong>
+    </p>
+
+    <div class="field-wrap">
+      <label class="field-label" for="passwordInput">Transaction Password</label>
+      <div class="pw-wrap">
+        <input
+          type="password"
+          id="passwordInput"
+          class="field-input"
+          placeholder="Enter password"
+          oninput="onPasswordInput()"
+        />
+        <button class="pw-toggle" id="pwToggle" onclick="togglePw()" type="button" title="Show/Hide password">
+          <svg id="eyeIcon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+      <div id="passwordError" class="field-error"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" id="confirmBtn" disabled onclick="submitTransfer()">
+        <span id="confirmBtnText">Confirm Transfer</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST CONTAINER ── -->
+<div id="toast-container"></div>
+
+
+<script>
+  /* ══════════════════════════════════════════════
+     CONFIG
+  ══════════════════════════════════════════════ */
+  const API_BASE = 'http://localhost:3060/api/v1';
+  const TOKEN    = localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+
+  /* ══════════════════════════════════════════════
+     STATE
+  ══════════════════════════════════════════════ */
+  let state = {
+    balance:        null,
+    recipientFound: false,
+    recipientName:  '',
+    amountValid:    false,
+    accountValid:   false,
+    narrationValid: false,
+    lookingUp:      false,
+  };
+
+  /* ══════════════════════════════════════════════
+     INIT — load user profile / balance
+  ══════════════════════════════════════════════ */
+  async function loadProfile() {
+    try {
+      const res = await axios.get(`${API_BASE}/user/profile`, {
+        headers: { Authorization: `Bearer ${TOKEN}` }
+      });
+      const data = res.data;
+      // Support various response shapes
+      state.balance = data.balance ?? data.accountBalance ?? data.walletBalance ?? 0;
+      document.getElementById('balanceDisplay').textContent = formatAmount(state.balance);
+      validateAmount(); // re-check in case amount was pre-filled
+    } catch (e) {
+      document.getElementById('balanceDisplay').textContent = 'N/A';
+      state.balance = Infinity; // allow entry if profile fails
+    }
+  }
+
+  /* ══════════════════════════════════════════════
+     HELPERS
+  ══════════════════════════════════════════════ */
+  function formatAmount(n) {
+    return '₦' + Number(n).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function getMyAccountNumber() {
+    try {
+      const profile = JSON.parse(localStorage.getItem('profile') || '{}');
+      return profile.accountNumber || profile.account_number || '';
+    } catch { return ''; }
+  }
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function clearError(id) {
+    const el = document.getElementById(id);
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+
+  function toast(msg, type = 'error') {
+    const ct = document.getElementById('toast-container');
+    const t  = document.createElement('div');
+    t.className = `toast${type === 'success' ? ' success' : ''}`;
+    t.textContent = msg;
+    ct.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .4s'; }, 3200);
+    setTimeout(() => ct.removeChild(t), 3600);
+  }
+
+  function updateContinueBtn() {
+    const ok = state.amountValid && state.accountValid && state.narrationValid && state.recipientFound;
+    document.getElementById('continueBtn').disabled = !ok;
+  }
+
+  /* ══════════════════════════════════════════════
+     AMOUNT VALIDATION
+  ══════════════════════════════════════════════ */
+  function validateAmount() {
+    const val = parseFloat(document.getElementById('amountInput').value);
+    if (isNaN(val) || val <= 0) {
+      showError('amountError', 'Please enter an amount greater than ₦0');
+      state.amountValid = false;
+    } else if (state.balance !== null && state.balance !== Infinity && val > state.balance) {
+      showError('amountError', `Amount exceeds your available balance of ${formatAmount(state.balance)}`);
+      state.amountValid = false;
+    } else {
+      clearError('amountError');
+      state.amountValid = true;
+    }
+    updateContinueBtn();
+  }
+
+  /* ══════════════════════════════════════════════
+     ACCOUNT INPUT
+  ══════════════════════════════════════════════ */
+  function onAccountInput() {
+    const input = document.getElementById('accountInput');
+    // Strip non-digits
+    input.value = input.value.replace(/\D/g, '').slice(0, 10);
+
+    // Reset recipient if editing
+    state.recipientFound = false;
+    state.recipientName  = '';
+    hideRecipientCard();
+    clearError('accountError');
+
+    const val = input.value;
+    if (val.length === 10) {
+      state.accountValid = true;
+    } else {
+      state.accountValid = false;
+    }
+    updateContinueBtn();
+  }
+
+  function hideRecipientCard() {
+    const card    = document.getElementById('recipientCard');
+    const spinner = document.getElementById('recipientSpinner');
+    card.classList.remove('show', 'error-card');
+    spinner.classList.remove('show');
+  }
+
+  /* ══════════════════════════════════════════════
+     ACCOUNT LOOKUP (on blur)
+  ══════════════════════════════════════════════ */
+  async function lookupRecipient() {
+    const acct = document.getElementById('accountInput').value.trim();
+    if (acct.length !== 10) return;
+
+    // Check own account
+    if (acct === getMyAccountNumber()) {
+      showError('accountError', 'You cannot transfer to your own account');
+      state.accountValid   = false;
+      state.recipientFound = false;
+      updateContinueBtn();
+      return;
+    }
+
+    // Show spinner
+    const spinner = document.getElementById('recipientSpinner');
+    spinner.classList.add('show');
+    state.lookingUp = true;
+    document.getElementById('continueBtn').disabled = true;
+
+    try {
+      const res = await axios.post(`${API_BASE}/user/get-receiverName`, { accountNumber: acct });
+      const name = typeof res.data === 'string' ? res.data : (res.data.name || res.data.fullName || JSON.stringify(res.data));
+
+      state.recipientName  = name;
+      state.recipientFound = true;
+
+      // Show green card
+      const card   = document.getElementById('recipientCard');
+      const avatar = document.getElementById('recipientAvatar');
+      const nameEl = document.getElementById('recipientName');
+
+      card.classList.remove('error-card');
+      nameEl.textContent   = name;
+      avatar.textContent   = name.trim().charAt(0).toUpperCase();
+      card.classList.add('show');
+
+      clearError('accountError');
+    } catch (err) {
+      state.recipientFound = false;
+      state.recipientName  = '';
+
+      const msg = err?.response?.data?.message || err?.response?.data || 'Account not found';
+      showError('accountError', typeof msg === 'string' ? msg : 'Account not found');
+
+      // Show error card
+      const card   = document.getElementById('recipientCard');
+      const avatar = document.getElementById('recipientAvatar');
+      const nameEl = document.getElementById('recipientName');
+      card.classList.add('show', 'error-card');
+      avatar.textContent = '!';
+      nameEl.textContent = 'Account not found';
+    } finally {
+      spinner.classList.remove('show');
+      state.lookingUp = false;
+      updateContinueBtn();
+    }
+  }
+
+  /* ══════════════════════════════════════════════
+     NARRATION
+  ══════════════════════════════════════════════ */
+  function onNarrationInput() {
+    const val = document.getElementById('narrationInput').value;
+    document.getElementById('narrationCount').textContent = `${val.length}/50`;
+
+    if (!val.trim()) {
+      showError('narrationError', 'Narration is required');
+      state.narrationValid = false;
+    } else {
+      clearError('narrationError');
+      state.narrationValid = true;
+    }
+    updateContinueBtn();
+  }
+
+  /* ══════════════════════════════════════════════
+     MODAL
+  ══════════════════════════════════════════════ */
+  function openModal() {
+    const amount    = parseFloat(document.getElementById('amountInput').value);
+    document.getElementById('modalAmount').textContent    = formatAmount(amount);
+    document.getElementById('modalRecipient').textContent = state.recipientName;
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('confirmBtn').disabled = true;
+    clearError('passwordError');
+    document.getElementById('modalOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('passwordInput').focus(), 300);
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  // Close modal on overlay click
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // ESC key
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  function onPasswordInput() {
+    const val = document.getElementById('passwordInput').value;
+    document.getElementById('confirmBtn').disabled = !val.trim();
+    clearError('passwordError');
+  }
+
+  function togglePw() {
+    const input  = document.getElementById('passwordInput');
+    const toggle = document.getElementById('pwToggle');
+    const isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    toggle.innerHTML = isText
+      ? `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+      : `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+  }
+
+  /* ══════════════════════════════════════════════
+     SUBMIT TRANSFER
+  ══════════════════════════════════════════════ */
+  async function submitTransfer() {
+    const confirmBtn = document.getElementById('confirmBtn');
+    const btnText    = document.getElementById('confirmBtnText');
+    const password   = document.getElementById('passwordInput').value;
+    const amount     = parseFloat(document.getElementById('amountInput').value);
+    const receiver   = document.getElementById('accountInput').value.trim();
+    const narration  = document.getElementById('narrationInput').value.trim();
+
+    if (!password) return;
+
+    confirmBtn.disabled = true;
+    btnText.innerHTML   = '<span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border:2px solid rgba(0,0,0,.3);border-top-color:#0F172A;border-radius:50%;display:inline-block;animation:spin .7s linear infinite;"></span>Processing…</span>';
+    clearError('passwordError');
+
+    try {
+      const res = await axios.post(`${API_BASE}/user/transfer`, {
+        amount,
+        receiver,
+        password,
+        narration,
+      }, {
+        headers: { Authorization: `Bearer ${TOKEN}` }
+      });
+
+      // Get transaction id from response
+      const transId = res.data?.transactionId || res.data?.id || res.data?.data?.id || res.data?.transferId || '';
+      closeModal();
+      toast('Transfer successful! Redirecting…', 'success');
+      setTimeout(() => {
+        window.location.href = `receipt.html?id=${transId}`;
+      }, 1000);
+
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 401) {
+        showError('passwordError', 'Incorrect password. Please try again.');
+        document.getElementById('passwordInput').focus();
+      } else if (status === 403) {
+        showError('passwordError', 'Insufficient balance for this transfer.');
+      } else {
+        const msg = err?.response?.data?.message || 'Transfer failed. Please try again.';
+        toast(typeof msg === 'string' ? msg : 'Transfer failed. Please try again.');
+      }
+      confirmBtn.disabled = false;
+      btnText.textContent = 'Confirm Transfer';
+    }
+  }
+
+  /* ══════════════════════════════════════════════
+     BOOT
+  ══════════════════════════════════════════════ */
+  loadProfile();
+</script>
+</body>
+</html>

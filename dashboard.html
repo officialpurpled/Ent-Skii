@@ -2,41 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Entity Bank – Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="lib/tailwind.js"></script>
+  <script src="lib/axios.min.js"></script>
+  <script src="lib/lucide.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
   <style>
     * { font-family: 'Plus Jakarta Sans', sans-serif; }
     body { background: #0F172A; color: #F1F5F9; }
 
-    /* Skeleton shimmer */
+    /* ── Skeleton shimmer ── */
     @keyframes shimmer {
-      0% { background-position: -400px 0; }
-      100% { background-position: 400px 0; }
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
     }
     .skeleton {
       background: linear-gradient(90deg, #1E293B 25%, #273548 50%, #1E293B 75%);
       background-size: 800px 100%;
       animation: shimmer 1.4s infinite linear;
       border-radius: 8px;
+      display: inline-block;
     }
 
-    /* Slide up entrance */
+    /* ── Slide-up entrance ── */
     @keyframes slideUp {
       from { opacity: 0; transform: translateY(18px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .slide-up { animation: slideUp 0.45s ease both; }
+    .slide-up    { animation: slideUp 0.45s ease both; }
     .slide-up-d1 { animation-delay: 0.06s; }
     .slide-up-d2 { animation-delay: 0.12s; }
     .slide-up-d3 { animation-delay: 0.18s; }
-    .slide-up-d4 { animation-delay: 0.24s; }
-    .slide-up-d5 { animation-delay: 0.30s; }
 
-    /* Balance card gradient shimmer overlay */
+    /* ── Balance card teal gradient ── */
     .card-shine {
       background: linear-gradient(135deg, #0D5C63 0%, #0a4a50 50%, #0D5C63 100%);
       position: relative;
@@ -45,47 +45,63 @@
     .card-shine::before {
       content: '';
       position: absolute;
-      top: -60%;
-      left: -60%;
-      width: 80%;
-      height: 220%;
+      top: -60%; left: -60%;
+      width: 80%; height: 220%;
       background: rgba(255,255,255,0.04);
       transform: rotate(25deg);
       pointer-events: none;
     }
 
-    /* Bottom nav active indicator */
-    .nav-item.active i { color: #00C896; }
-    .nav-item.active span { color: #00C896; }
-    .nav-item i { color: #94A3B8; }
-    .nav-item span { color: #94A3B8; }
+    /* ── Bottom nav ── */
+    .nav-item i, .nav-item span { color: #94A3B8; transition: color .15s; }
+    .nav-item.active i, .nav-item.active span { color: #00C896; }
 
-    /* Pulse badge */
+    /* ── Pulse notification dot ── */
     @keyframes pulse-badge {
       0%, 100% { transform: scale(1); }
-      50%       { transform: scale(1.15); }
+      50%       { transform: scale(1.2); }
     }
     .pulse-badge { animation: pulse-badge 2s ease infinite; }
 
-    /* Scrollable transaction list */
-    .tx-scroll::-webkit-scrollbar { width: 0; }
-    .tx-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-
-    /* Action button hover */
-    .action-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+    /* ── Action button lift ── */
     .action-btn { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+    .action-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
 
-    /* Add Money hover */
-    .add-money-btn:hover { background: #00dba6; }
+    /* ── Add Money button ── */
     .add-money-btn { transition: background 0.18s ease; }
+    .add-money-btn:hover { background: #00dba6 !important; }
 
-    /* Circular avatar ring */
+    /* ── Avatar gradient ring ── */
     .avatar-ring {
       background: linear-gradient(135deg, #00C896, #0D5C63);
       padding: 2px;
       border-radius: 9999px;
     }
+
+    /* ── Scrollable tx list (hidden scrollbar) ── */
+    .tx-scroll::-webkit-scrollbar { width: 0; }
+    .tx-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 96px; left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: #1E293B;
+      border: 1px solid #334155;
+      color: #F1F5F9;
+      font-size: 13px; font-weight: 600;
+      padding: 10px 22px;
+      border-radius: 999px;
+      white-space: nowrap;
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s, transform .3s cubic-bezier(.34,1.56,.64,1);
+      z-index: 9999;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
+
   <script>
     tailwind.config = {
       theme: {
@@ -107,365 +123,445 @@
     }
   </script>
 </head>
+
 <body class="min-h-screen flex justify-center" style="background:#0F172A;">
 
-  <!-- App Shell: max 480px -->
+  <!-- ═══ APP SHELL ═══ -->
   <div class="w-full max-w-[480px] relative flex flex-col min-h-screen pb-24" id="app">
 
     <!-- ════════════ TOP BAR ════════════ -->
-    <header class="flex items-center justify-between px-5 pt-12 pb-4 slide-up" data-testid="top-bar">
+    <header class="flex items-center justify-between px-5 pt-12 pb-4 slide-up">
 
-      <!-- Left: avatar + greeting -->
+      <!-- Avatar + Greeting -->
       <div class="flex items-center gap-3">
-        <div class="avatar-ring" data-testid="avatar-ring">
-          <div id="avatar-wrap" class="w-10 h-10 rounded-full overflow-hidden bg-brand-surface flex items-center justify-center">
-            <div class="skeleton w-10 h-10 rounded-full" id="avatar-skeleton"></div>
-            <img id="avatar-img" src="" alt="Profile" class="w-10 h-10 object-cover rounded-full hidden" data-testid="avatar-img" />
+        <div class="avatar-ring">
+          <div id="avatar-wrap"
+            class="w-10 h-10 rounded-full overflow-hidden bg-brand-surface flex items-center justify-center">
+            <span class="skeleton w-10 h-10 rounded-full block" id="avatar-skeleton"></span>
+            <img id="avatar-img" src="" alt="Profile"
+              class="w-10 h-10 object-cover rounded-full hidden" />
           </div>
         </div>
         <div>
           <p class="text-xs text-brand-muted font-medium">Good day 👋</p>
-          <p class="text-sm font-700 text-brand-text leading-tight" id="user-greeting" data-testid="user-greeting">
-            <span class="skeleton inline-block w-28 h-4 rounded" id="name-skeleton"></span>
+          <p class="text-sm font-bold text-brand-text leading-tight" id="user-greeting">
+            <span class="skeleton w-28 h-4 rounded" id="name-skeleton"></span>
           </p>
         </div>
       </div>
 
-      <!-- Right: Bell + Headset -->
+      <!-- Bell + Headset -->
       <div class="flex items-center gap-3">
-        <!-- Bell with badge -->
-        <button class="relative w-9 h-9 rounded-full bg-brand-surface flex items-center justify-center" data-testid="bell-btn" onclick="console.log('notifications')">
+        <button
+          class="relative w-9 h-9 rounded-full bg-brand-surface flex items-center justify-center"
+          onclick="showToast('No new notifications')">
           <i data-lucide="bell" class="w-4 h-4 text-brand-muted"></i>
-          <span class="pulse-badge absolute top-1 right-1 w-2 h-2 bg-brand-accent rounded-full"></span>
+          <span class="pulse-badge absolute top-1 right-1 w-2 h-2 rounded-full"
+            style="background:#00C896;"></span>
         </button>
-        <!-- Headset -->
-        <button class="w-9 h-9 rounded-full bg-brand-surface flex items-center justify-center" data-testid="support-btn" onclick="console.log('support')">
+        <button
+          class="w-9 h-9 rounded-full bg-brand-surface flex items-center justify-center"
+          onclick="window.open('https://wa.me/your-number')">
           <i data-lucide="headphones" class="w-4 h-4 text-brand-muted"></i>
         </button>
       </div>
     </header>
 
     <!-- ════════════ BALANCE CARD ════════════ -->
-    <section class="px-5 mt-1 slide-up slide-up-d1" data-testid="balance-card">
+    <section class="px-5 mt-1 slide-up slide-up-d1">
       <div class="card-shine rounded-2xl p-6 relative">
 
-        <!-- Top row: label + eye -->
+        <!-- Label + Eye toggle -->
         <div class="flex items-center justify-between mb-1">
-          <span class="text-xs font-semibold text-white/70 tracking-wide uppercase">Available Balance</span>
-          <button id="eye-btn" onclick="toggleBalance()" data-testid="eye-toggle" class="text-white/60 hover:text-white transition-colors">
+          <span class="text-xs font-semibold text-white/70 tracking-wide uppercase">
+            Available Balance
+          </span>
+          <button id="eye-btn" onclick="toggleBalance()"
+            class="text-white/60 hover:text-white transition-colors">
             <i data-lucide="eye" id="eye-icon" class="w-4 h-4"></i>
           </button>
         </div>
 
         <!-- Balance amount -->
-        <div class="mb-5">
-          <p class="text-3xl font-800 text-white tracking-tight leading-none" id="balance-display" data-testid="balance-display">
-            <span class="skeleton inline-block w-40 h-8 rounded" id="balance-skeleton"></span>
+        <div class="mb-1">
+          <p class="text-3xl font-extrabold text-white tracking-tight leading-none"
+            id="balance-display">
+            <span class="skeleton w-40 h-8 rounded" id="balance-skeleton"></span>
           </p>
         </div>
 
-        <!-- Bottom: tx history + add money -->
+        <!-- Account number -->
+        <p class="text-xs text-white/40 font-medium mb-5" id="account-num-display"></p>
+
+        <!-- Bottom row: tx history + add money -->
         <div class="flex items-center justify-between">
-          <a href="transactions.html" class="flex items-center gap-1 text-xs font-semibold text-white/70 hover:text-white transition-colors" data-testid="tx-history-link">
+          <a href="transactions.html"
+            class="flex items-center gap-1 text-xs font-semibold text-white/70 hover:text-white transition-colors">
             Transaction History
             <i data-lucide="chevron-right" class="w-3 h-3"></i>
           </a>
-
-          <button
-            onclick="window.location.href='addmoney.html'"
-            class="add-money-btn flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-700 text-[#0F172A]"
-            style="background:#00C896;"
-            data-testid="add-money-btn"
-          >
+          <button onclick="window.location.href='addmoney.html'"
+            class="add-money-btn flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-[#0F172A]"
+            style="background:#00C896;">
             <i data-lucide="plus" class="w-4 h-4"></i>
             Add Money
           </button>
         </div>
 
-        <!-- Decorative circles -->
-        <div class="absolute -top-6 -right-6 w-28 h-28 rounded-full opacity-10" style="background:#00C896;"></div>
-        <div class="absolute -bottom-10 -left-8 w-36 h-36 rounded-full opacity-5" style="background:#F1F5F9;"></div>
+        <!-- Decorative blobs -->
+        <div class="absolute -top-6 -right-6 w-28 h-28 rounded-full opacity-10"
+          style="background:#00C896; pointer-events:none;"></div>
+        <div class="absolute -bottom-10 -left-8 w-36 h-36 rounded-full opacity-5"
+          style="background:#F1F5F9; pointer-events:none;"></div>
       </div>
     </section>
 
     <!-- ════════════ 3 ACTION BUTTONS ════════════ -->
-    <section class="px-5 mt-6 slide-up slide-up-d2" data-testid="action-buttons">
+    <section class="px-5 mt-6 slide-up slide-up-d2">
       <div class="grid grid-cols-3 gap-4">
 
-        <!-- Transfer -->
-        <button
-          onclick="window.location.href='transfer.html'"
+        <button onclick="window.location.href='transfer.html'"
           class="action-btn flex flex-col items-center justify-center gap-2 py-4 rounded-xl"
-          style="background:#1E293B;"
-          data-testid="transfer-btn"
-        >
-          <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,200,150,0.12);">
+          style="background:#1E293B;">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center"
+            style="background:rgba(0,200,150,0.12);">
             <i data-lucide="send" class="w-5 h-5" style="color:#00C896;"></i>
           </div>
-          <span class="text-xs font-600 text-brand-text">Transfer</span>
+          <span class="text-xs font-semibold text-brand-text">Transfer</span>
         </button>
 
-        <!-- Airtime -->
-        <button
-          onclick="console.log('airtime')"
+        <button onclick="showToast('Airtime coming soon')"
           class="action-btn flex flex-col items-center justify-center gap-2 py-4 rounded-xl"
-          style="background:#1E293B;"
-          data-testid="airtime-btn"
-        >
-          <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,200,150,0.12);">
+          style="background:#1E293B;">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center"
+            style="background:rgba(0,200,150,0.12);">
             <i data-lucide="phone" class="w-5 h-5" style="color:#00C896;"></i>
           </div>
-          <span class="text-xs font-600 text-brand-text">Airtime</span>
+          <span class="text-xs font-semibold text-brand-text">Airtime</span>
         </button>
 
-        <!-- Data -->
-        <button
-          onclick="console.log('data')"
+        <button onclick="showToast('Data coming soon')"
           class="action-btn flex flex-col items-center justify-center gap-2 py-4 rounded-xl"
-          style="background:#1E293B;"
-          data-testid="data-btn"
-        >
-          <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,200,150,0.12);">
+          style="background:#1E293B;">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center"
+            style="background:rgba(0,200,150,0.12);">
             <i data-lucide="wifi" class="w-5 h-5" style="color:#00C896;"></i>
           </div>
-          <span class="text-xs font-600 text-brand-text">Data</span>
+          <span class="text-xs font-semibold text-brand-text">Data</span>
         </button>
+
       </div>
     </section>
 
     <!-- ════════════ RECENT TRANSACTIONS ════════════ -->
-    <section class="px-5 mt-8 slide-up slide-up-d3 flex-1" data-testid="recent-transactions">
+    <section class="px-5 mt-8 slide-up slide-up-d3 flex-1">
 
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-base font-700 text-brand-text">Recent Transactions</h2>
-        <a href="transactions.html" class="text-xs font-600" style="color:#00C896;" data-testid="see-all-link">See all</a>
+        <h2 class="text-base font-bold text-brand-text">Recent Transactions</h2>
+        <a href="transactions.html" class="text-xs font-semibold" style="color:#00C896;">See all</a>
       </div>
 
-      <!-- Skeleton list -->
+      <!-- Skeleton rows -->
       <div id="tx-skeleton" class="flex flex-col gap-3">
-        <div class="skeleton h-14 rounded-xl"></div>
-        <div class="skeleton h-14 rounded-xl"></div>
-        <div class="skeleton h-14 rounded-xl"></div>
-        <div class="skeleton h-14 rounded-xl"></div>
-        <div class="skeleton h-14 rounded-xl"></div>
+        <div class="skeleton h-14 w-full rounded-xl block"></div>
+        <div class="skeleton h-14 w-full rounded-xl block"></div>
+        <div class="skeleton h-14 w-full rounded-xl block"></div>
+        <div class="skeleton h-14 w-full rounded-xl block"></div>
+        <div class="skeleton h-14 w-full rounded-xl block"></div>
       </div>
 
       <!-- Actual list -->
-      <div id="tx-list" class="flex flex-col gap-2 hidden tx-scroll" data-testid="tx-list"></div>
+      <div id="tx-list" class="flex flex-col gap-2 hidden tx-scroll"></div>
 
       <!-- Empty state -->
-      <div id="tx-empty" class="hidden flex flex-col items-center justify-center py-12 gap-3" data-testid="tx-empty">
+      <div id="tx-empty" class="hidden flex-col items-center justify-center py-12 gap-3">
         <div class="w-14 h-14 rounded-full flex items-center justify-center" style="background:#1E293B;">
           <i data-lucide="inbox" class="w-7 h-7 text-brand-muted"></i>
         </div>
-        <p class="text-sm text-brand-muted text-center">No transactions yet.<br>Make your first transfer!</p>
+        <p class="text-sm text-brand-muted text-center">
+          No transactions yet.<br />Make your first transfer!
+        </p>
       </div>
+
     </section>
 
   </div><!-- /app -->
 
   <!-- ════════════ BOTTOM NAV ════════════ -->
-  <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] flex items-center justify-around px-2 py-3 border-t border-white/5" style="background:#1E293B;" data-testid="bottom-nav">
+  <nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px]
+    flex items-center justify-around px-2 py-3 border-t border-white/5 z-50"
+    style="background:#1E293B;">
 
-    <button class="nav-item active flex flex-col items-center gap-0.5" onclick="console.log('home')" data-testid="nav-home">
+    <button class="nav-item active flex flex-col items-center gap-0.5"
+      onclick="window.location.href='dashboard.html'">
       <i data-lucide="home" class="w-5 h-5"></i>
-      <span class="text-[10px] font-600">Home</span>
+      <span class="text-[10px] font-semibold">Home</span>
     </button>
 
-    <button class="nav-item flex flex-col items-center gap-0.5" onclick="console.log('rewards')" data-testid="nav-rewards">
+    <button class="nav-item flex flex-col items-center gap-0.5"
+      onclick="showToast('Rewards coming soon')">
       <i data-lucide="gift" class="w-5 h-5"></i>
-      <span class="text-[10px] font-600">Rewards</span>
+      <span class="text-[10px] font-semibold">Rewards</span>
     </button>
 
-    <button class="nav-item flex flex-col items-center gap-0.5" onclick="console.log('more')" data-testid="nav-more">
+    <!-- <button class="nav-item flex flex-col items-center gap-0.5"
+      onclick="showToast('More coming soon')">
       <i data-lucide="grid-2x2" class="w-5 h-5"></i>
-      <span class="text-[10px] font-600">More</span>
-    </button>
+      <span class="text-[10px] font-semibold">More</span>
+    </button> -->
 
-    <button class="nav-item flex flex-col items-center gap-0.5" onclick="console.log('transactions')" data-testid="nav-transactions">
+    <button class="nav-item flex flex-col items-center gap-0.5"
+      onclick="window.location.href='transactions.html'">
       <i data-lucide="receipt-text" class="w-5 h-5"></i>
-      <span class="text-[10px] font-600">Transactions</span>
+      <span class="text-[10px] font-semibold">Transactions</span>
     </button>
 
-    <button class="nav-item flex flex-col items-center gap-0.5" onclick="console.log('me')" data-testid="nav-me">
+    <button class="nav-item flex flex-col items-center gap-0.5"
+      onclick="window.location.href='profile.html'">
       <i data-lucide="user-round" class="w-5 h-5"></i>
-      <span class="text-[10px] font-600">Me</span>
+      <span class="text-[10px] font-semibold">Me</span>
     </button>
 
   </nav>
 
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- ════════════ SCRIPT ════════════ -->
   <script>
-    /* ───────────── CONFIG ───────────── */
     const API_BASE = 'http://localhost:3060/api/v1';
 
-    /* ───────────── STATE ───────────── */
-    let balanceVisible = true;
-    let rawBalance = null;
+    /* ── State ── */
+    let balanceVisible = localStorage.getItem('hideBalanceDefault') !== 'true';
+    let rawBalance     = null;
+    let myAccountNo    = null;
 
-    /* ───────────── HELPERS ───────────── */
+    /* ── Helpers ── */
     const fmt = (n) =>
-      '₦' + Number(n).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      '₦' + Number(n).toLocaleString('en-NG', {
+        minimumFractionDigits: 2, maximumFractionDigits: 2,
+      });
 
-    const fmtDate = (iso) => {
-      const d = new Date(iso);
-      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    };
+    const fmtDate = (iso) =>
+      new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-    const authHeaders = () => {
-      const token = localStorage.getItem('token');
-      return { Authorization: `Bearer ${token}` };
-    };
+    const authHeaders = () => ({
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    });
 
-    /* ───────────── AUTH GUARD ───────────── */
-    const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = 'login.html';
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 3000);
     }
 
-    /* ───────────── BALANCE TOGGLE ───────────── */
+    /* ── Auth guard ── */
+    if (!localStorage.getItem('token')) window.location.href = 'login.html';
+
+    /* ── Balance toggle ── */
     function toggleBalance() {
       balanceVisible = !balanceVisible;
+      localStorage.setItem('hideBalanceDefault', String(!balanceVisible));
+
       const display = document.getElementById('balance-display');
       const icon    = document.getElementById('eye-icon');
 
       if (rawBalance !== null) {
-        display.textContent = balanceVisible ? fmt(rawBalance) : '****';
+        display.textContent = balanceVisible ? fmt(rawBalance) : '••••••';
       }
       icon.setAttribute('data-lucide', balanceVisible ? 'eye' : 'eye-off');
       lucide.createIcons();
     }
 
-    /* ───────────── RENDER PROFILE ───────────── */
-    function renderProfile(data) {
-      // Name
-      const greeting = document.getElementById('user-greeting');
-      const skeleton = document.getElementById('name-skeleton');
-      if (skeleton) skeleton.remove();
-      greeting.textContent = `Hi, ${data.fullname}`;
+    /* ── Render profile ── */
+    function renderProfile(raw) {
+      const profile  = raw?.data || raw;
+      const fullname = profile?.fullname || profile?.name || 'User';
+
+      // Greeting
+      const greetEl  = document.getElementById('user-greeting');
+      const nameSkel = document.getElementById('name-skeleton');
+      if (nameSkel) nameSkel.remove();
+      greetEl.textContent = `Hi, ${fullname.split(' ')[0]}`;
 
       // Balance
-      rawBalance = data.account?.balance ?? 0;
-      const balanceEl   = document.getElementById('balance-display');
-      const balanceSkel = document.getElementById('balance-skeleton');
-      if (balanceSkel) balanceSkel.remove();
-      balanceEl.textContent = balanceVisible ? fmt(rawBalance) : '****';
+      rawBalance  = profile?.account?.balance ?? 0;
+      myAccountNo = profile?.account?.number  ?? null;
+      if (myAccountNo) localStorage.setItem('accountNumber', JSON.stringify(myAccountNo));
+
+      const balEl   = document.getElementById('balance-display');
+      const balSkel = document.getElementById('balance-skeleton');
+      if (balSkel) balSkel.remove();
+      balEl.textContent = balanceVisible ? fmt(rawBalance) : '••••••';
+
+      if (myAccountNo) {
+        document.getElementById('account-num-display').textContent =
+          `Account: ${myAccountNo}`;
+      }
 
       // Avatar
-      const skeletonAvatar = document.getElementById('avatar-skeleton');
-      const avatarImg      = document.getElementById('avatar-img');
-      if (data.picture) {
-        avatarImg.src = data.picture;
+      const skelAvatar = document.getElementById('avatar-skeleton');
+      const avatarImg  = document.getElementById('avatar-img');
+      if (profile?.picture) {
+        avatarImg.src = profile.picture;
         avatarImg.classList.remove('hidden');
-        if (skeletonAvatar) skeletonAvatar.remove();
+        if (skelAvatar) skelAvatar.remove();
       } else {
-        // Fallback: initials circle
         const wrap = document.getElementById('avatar-wrap');
-        wrap.innerHTML = `<span class="text-sm font-700 text-brand-accent">${data.fullname.charAt(0).toUpperCase()}</span>`;
+        wrap.innerHTML = `<span class="text-sm font-bold" style="color:#00C896;">
+          ${fullname.charAt(0).toUpperCase()}</span>`;
         wrap.style.background = '#0D5C63';
       }
     }
 
-    /* ───────────── RENDER TRANSACTIONS ───────────── */
-    function renderTransactions(txns) {
-      const skeleton = document.getElementById('tx-skeleton');
-      const list     = document.getElementById('tx-list');
-      const empty    = document.getElementById('tx-empty');
+    /* ── Determine tx display metadata ── */
+    function getTxMeta(tx) {
+      const { type, senderAccount, receiverAccount, senderName, receiverName,
+              amount, totalDebit, plan, network, phoneNumber } = tx;
 
-      skeleton.classList.add('hidden');
+      if (type === 'Transfer') {
+        const isDebit = senderAccount === myAccountNo;
+        return isDebit
+          ? {
+              iconName:  'arrow-up-right',
+              iconColor: '#EF4444',
+              iconBg:    'rgba(239,68,68,0.12)',
+              label:     `Transfer to ${receiverName || 'Unknown'}`,
+              sub:       receiverAccount || '—',
+              amtText:   `−${fmt(totalDebit ?? amount)}`,
+              amtColor:  '#EF4444',
+            }
+          : {
+              iconName:  'arrow-down-left',
+              iconColor: '#22C55E',
+              iconBg:    'rgba(34,197,94,0.12)',
+              label:     `Received from ${senderName || 'Unknown'}`,
+              sub:       senderAccount || '—',
+              amtText:   `+${fmt(amount)}`,
+              amtColor:  '#22C55E',
+            };
+      }
 
-      if (!txns || txns.length === 0) {
-        empty.classList.remove('hidden');
+      if (type === 'Topup') {
+        if (plan) {
+          return {
+            iconName:  'wifi',
+            iconColor: '#818CF8',
+            iconBg:    'rgba(129,140,248,0.12)',
+            label:     `Data – ${network || 'Network'}`,
+            sub:       `${plan} · ${phoneNumber || ''}`,
+            amtText:   `−${fmt(amount)}`,
+            amtColor:  '#EF4444',
+          };
+        }
+        return {
+          iconName:  'phone',
+          iconColor: '#F59E0B',
+          iconBg:    'rgba(245,158,11,0.12)',
+          label:     `Airtime – ${network || 'Network'}`,
+          sub:       phoneNumber || '—',
+          amtText:   `−${fmt(amount)}`,
+          amtColor:  '#EF4444',
+        };
+      }
+
+      // Fallback
+      return {
+        iconName:  'circle-dollar-sign',
+        iconColor: '#00C896',
+        iconBg:    'rgba(0,200,150,0.12)',
+        label:     senderName || type || 'Transaction',
+        sub:       type || '—',
+        amtText:   `+${fmt(amount)}`,
+        amtColor:  '#22C55E',
+      };
+    }
+
+    /* ── Render transactions ── */
+    function renderTransactions(raw) {
+      const txns    = (raw?.data || raw || []).slice(0, 5);
+      const skelEl  = document.getElementById('tx-skeleton');
+      const listEl  = document.getElementById('tx-list');
+      const emptyEl = document.getElementById('tx-empty');
+
+      skelEl.classList.add('hidden');
+
+      if (!txns.length) {
+        emptyEl.style.display = 'flex';
         lucide.createIcons();
         return;
       }
 
-      list.classList.remove('hidden');
-
-      const myAccountNo = JSON.parse(localStorage.getItem('accountNumber'))
-
-      const html = txns.map((tx, i) => {
-        // tx.type === 'DEBIT'
-        const isDebit  = tx.sender.accountNumber === myAccountNo;
-        const amtColor = isDebit ? '#EF4444' : '#22C55E';
-        const amtSign  = isDebit ? '−' : '+';
-        const iconName = isDebit ? 'arrow-up-right' : 'arrow-down-left';
-        const iconBg   = isDebit ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)';
-        const iconColor= isDebit ? '#EF4444' : '#22C55E';
-        const name     = isDebit
-          ? (tx.receiver.name || 'Unknown')
-          : (tx.sender.name   || 'Unknown');
-
+      listEl.classList.remove('hidden');
+      listEl.innerHTML = txns.map((tx, i) => {
+        const m = getTxMeta(tx);
         return `
-          <div
+          <a href="receipt.html?id=${tx.id}"
             class="flex items-center justify-between px-4 py-3 rounded-xl slide-up"
-            style="background:#1E293B; animation-delay:${0.05 * i}s;"
-            data-testid="tx-item-${tx.id}"
-          >
+            style="background:#1E293B; animation-delay:${0.05 * i}s; text-decoration:none; color:inherit;">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background:${iconBg};">
-                <i data-lucide="${iconName}" class="w-5 h-5" style="color:${iconColor};"></i>
+              <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style="background:${m.iconBg};">
+                <i data-lucide="${m.iconName}" class="w-5 h-5" style="color:${m.iconColor};"></i>
               </div>
               <div>
-                <p class="text-sm font-600 text-brand-text leading-tight">
-                  ${isDebit ? 'Transfer to' : 'Received from'} ${name}
-                </p>
-                <p class="text-[11px] text-brand-muted mt-0.5">${tx.narration || '—'}</p>
+                <p class="text-sm font-semibold text-brand-text leading-tight">${m.label}</p>
+                <p class="text-[11px] text-brand-muted mt-0.5">${m.sub}</p>
                 <p class="text-[11px] text-brand-muted">${fmtDate(tx.createdAt)}</p>
               </div>
             </div>
             <div class="text-right flex-shrink-0 ml-2">
-              <p class="text-sm font-700" style="color:${amtColor};" data-testid="tx-amount-${tx.id}">
-                ${amtSign}${fmt(isDebit ? tx.totalDebit : tx.amount) || 'Unknown'}
-              </p>
+              <p class="text-sm font-bold" style="color:${m.amtColor};">${m.amtText}</p>
+              <p class="text-[10px] text-brand-muted mt-0.5">${tx.status || 'Success'}</p>
             </div>
-          </div>
+          </a>
         `;
       }).join('');
 
-      list.innerHTML = html;
       lucide.createIcons();
     }
 
-    /* ───────────── FETCH DATA ───────────── */
+    /* ── Fetch & boot ── */
     async function loadDashboard() {
       try {
         const [profileRes, txRes] = await Promise.allSettled([
-          axios.get(`${API_BASE}/user/profile`,        { headers: authHeaders() }),
+          axios.get(`${API_BASE}/user/profile`,      { headers: authHeaders() }),
           axios.get(`${API_BASE}/user/transactions`, { headers: authHeaders() }),
         ]);
 
         if (profileRes.status === 'fulfilled') {
           renderProfile(profileRes.value.data);
         } else {
-          console.error('Profile fetch failed:', profileRes.reason);
-          // If 401, redirect
-          if (profileRes.reason?.response?.status === 401) {
-            localStorage.removeItem('token');
-            window.location.href = 'login.html';
-            return;
+          if (profileRes.reason.status === 401) {
+            localStorage.clear(); window.location.href = 'login.html'; return;
           }
-          // fallback: clear skeletons
-          const s1 = document.getElementById('name-skeleton');
-          const s2 = document.getElementById('balance-skeleton');
-          const s3 = document.getElementById('avatar-skeleton');
-          if (s1) s1.replaceWith(document.createTextNode('User'));
-          if (s2) s2.replaceWith(document.createTextNode('—'));
-          if (s3) s3.remove();
+          // Clear skeletons gracefully
+          ['name-skeleton', 'balance-skeleton', 'avatar-skeleton'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+          });
+          document.getElementById('user-greeting').textContent = 'Hi, there';
+          document.getElementById('balance-display').textContent = '—';
+          showToast('Could not load profile');
         }
 
         if (txRes.status === 'fulfilled') {
           renderTransactions(txRes.value.data);
         } else {
-          console.error('Transactions fetch failed:', txRes.reason);
+          if (txRes.reason.status === 401) {
+            localStorage.clear(); window.location.href = 'login.html'; return;
+          }
           renderTransactions([]);
+          showToast('Could not load transactions');
         }
 
       } catch (err) {
-        console.error('Dashboard load error:', err);
+        console.error('Dashboard error:', err);
       }
     }
 
-    /* ───────────── BOOT ───────────── */
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
       loadDashboard();

@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Transaction Receipt — Entity Bank</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="lib/tailwind.js"></script>
+  <script src="lib/axios.min.js"></script>
+  <script src="lib/lucide.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
 
   <script>
@@ -311,60 +311,30 @@
           <span style="color:#94A3B8;font-size:13px;">Status</span>
           <span id="detStatus" class="flex items-center gap-1.5" style="font-size:13px;font-weight:600;"></span>
         </div>
-      </div>
-
-      <!-- Sender -->
-      <div class="section-card fade-up-4">
-        <p class="section-title">From</p>
-        <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center rounded-xl" style="width:40px;height:40px;background:rgba(0,200,150,0.12);border:1px solid rgba(0,200,150,0.2);flex-shrink:0;">
-            <i data-lucide="user" class="w-4 h-4" style="color:#00C896;"></i>
-          </div>
-          <div>
-            <p id="senderName" style="font-weight:600;font-size:15px;font-family:'Syne',sans-serif;"></p>
-            <p id="senderAcct" style="color:#94A3B8;font-size:12px;font-family:'DM Mono',monospace;margin-top:2px;"></p>
-          </div>
+        <div id="senderRow" class="detail-row hidden">
+          <span style="color:#94A3B8;font-size:13px;">Sender</span>
+          <span id="detSender" style="font-size:13px;font-weight:600;word-break:break-word;text-align:right;max-width:55%;"></span>
         </div>
-        <div class="flex gap-4 mt-4 pt-4" style="border-top:1px solid #334155;">
-          <div class="flex-1">
-            <p style="color:#94A3B8;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;">Balance Before</p>
-            <p id="senderBefore" style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;margin-top:3px;"></p>
-          </div>
-          <div style="width:1px;background:#334155;"></div>
-          <div class="flex-1">
-            <p style="color:#94A3B8;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;">Balance After</p>
-            <p id="senderAfter" style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;margin-top:3px;color:#ef4444;"></p>
-          </div>
+        <div id="receiverRow" class="detail-row hidden">
+          <span style="color:#94A3B8;font-size:13px;">Receiver</span>
+          <span id="detReceiver" style="font-size:13px;font-weight:600;word-break:break-word;text-align:right;max-width:55%;"></span>
         </div>
-      </div>
-
-      <!-- Receiver -->
-      <div class="section-card fade-up-5">
-        <p class="section-title">To</p>
-        <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center rounded-xl" style="width:40px;height:40px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);flex-shrink:0;">
-            <i data-lucide="user" class="w-4 h-4" style="color:#22C55E;"></i>
-          </div>
-          <div>
-            <p id="receiverName" style="font-weight:600;font-size:15px;font-family:'Syne',sans-serif;"></p>
-            <p id="receiverAcct" style="color:#94A3B8;font-size:12px;font-family:'DM Mono',monospace;margin-top:2px;"></p>
-          </div>
+        <div id="networkRow" class="detail-row hidden">
+          <span style="color:#94A3B8;font-size:13px;">Network</span>
+          <span id="detNetwork" style="font-size:13px;font-weight:600;"></span>
         </div>
-        <div class="flex gap-4 mt-4 pt-4" style="border-top:1px solid #334155;">
-          <div class="flex-1">
-            <p style="color:#94A3B8;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;">Balance Before</p>
-            <p id="receiverBefore" style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;margin-top:3px;"></p>
-          </div>
-          <div style="width:1px;background:#334155;"></div>
-          <div class="flex-1">
-            <p style="color:#94A3B8;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;">Balance After</p>
-            <p id="receiverAfter" style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;margin-top:3px;color:#22C55E;"></p>
-          </div>
+        <div id="phoneRow" class="detail-row hidden">
+          <span style="color:#94A3B8;font-size:13px;">Phone</span>
+          <span id="detPhone" style="font-size:13px;font-weight:600;"></span>
+        </div>
+        <div id="planRow" class="detail-row hidden">
+          <span style="color:#94A3B8;font-size:13px;">Plan</span>
+          <span id="detPlan" style="font-size:13px;font-weight:600;"></span>
         </div>
       </div>
 
       <!-- Amount Breakdown -->
-      <div class="section-card fade-up-6">
+      <div id="breakdownSection" class="section-card fade-up-6 hidden">
         <p class="section-title">Amount Breakdown</p>
         <div class="detail-row">
           <span style="color:#94A3B8;font-size:13px;">Amount Sent</span>
@@ -430,7 +400,7 @@
   }
 
   function getToken() {
-    return localStorage.getItem('token') || sessionStorage.getItem('token');
+    return localStorage.getItem('token');
   }
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -440,9 +410,9 @@
     document.getElementById('displayType').textContent   = (tx.type || '').toUpperCase();
 
     // Details
-    document.getElementById('detType').textContent   = tx.type || '—';
-    document.getElementById('detRef').textContent    = tx.id   || '—';
-    document.getElementById('detDate').textContent   = tx.createdAt ? fmtDate(tx.createdAt) : '—';
+    document.getElementById('detType').textContent = tx.type || '—';
+    document.getElementById('detRef').textContent  = tx.id   || '—';
+    document.getElementById('detDate').textContent = tx.createdAt ? fmtDate(tx.createdAt) : '—';
 
     const statusEl = document.getElementById('detStatus');
     const isSuccess = (tx.status || '').toLowerCase() === 'successful';
@@ -452,24 +422,35 @@
       <span style="width:8px;height:8px;border-radius:50%;background:${dotColor};display:inline-block;flex-shrink:0;"></span>
       <span style="color:${txtColor};">${tx.status || '—'}</span>`;
 
-    // Sender
-    document.getElementById('senderName').textContent   = tx.sender?.name          || '—';
-    document.getElementById('senderAcct').textContent   = tx.sender?.accountNumber  || '—';
-    document.getElementById('senderBefore').textContent = tx.sender?.balanceBefore != null ? fmt(tx.sender.balanceBefore) : '—';
-    document.getElementById('senderAfter').textContent  = tx.sender?.balanceAfter  != null ? fmt(tx.sender.balanceAfter)  : '—';
+    const type = (tx.type || '').toLowerCase();
+    const isDebit = type === 'debit';
+    const isTopup = type === 'topup';
 
-    // Receiver
-    document.getElementById('receiverName').textContent   = tx.receiver?.name          || '—';
-    document.getElementById('receiverAcct').textContent   = tx.receiver?.accountNumber  || '—';
-    document.getElementById('receiverBefore').textContent = tx.receiver?.balanceBefore != null ? fmt(tx.receiver.balanceBefore) : '—';
-    document.getElementById('receiverAfter').textContent  = tx.receiver?.balanceAfter  != null ? fmt(tx.receiver.balanceAfter)  : '—';
+    const senderName    = tx.sender?.name || tx.senderName || '—';
+    const senderAccount = tx.sender?.accountNumber || tx.senderAccount || '—';
+    const receiverName    = tx.receiver?.name || tx.receiverName || '—';
+    const receiverAccount = tx.receiver?.accountNumber || tx.receiverAccount || '—';
+    const network = tx.network || '—';
+    const phone   = tx.phone_number || tx.phoneNumber || tx.phone || '—';
+    const plan    = tx.plan || '—';
 
-    // Breakdown
+    document.getElementById('detSender').textContent   = `${senderName} • ${senderAccount}`;
+    document.getElementById('detReceiver').textContent = `${receiverName} • ${receiverAccount}`;
+    document.getElementById('detNetwork').textContent  = network;
+    document.getElementById('detPhone').textContent    = phone;
+    document.getElementById('detPlan').textContent     = plan;
+
+    document.getElementById('senderRow').classList.toggle('hidden', isTopup);
+    document.getElementById('receiverRow').classList.toggle('hidden', isTopup);
+    document.getElementById('networkRow').classList.toggle('hidden', !isTopup);
+    document.getElementById('phoneRow').classList.toggle('hidden', !isTopup);
+    document.getElementById('planRow').classList.toggle('hidden', !isTopup || !tx.plan);
+
+    document.getElementById('breakdownSection').classList.toggle('hidden', !isDebit);
     document.getElementById('breakAmount').textContent = tx.amount    != null ? fmt(tx.amount)    : '—';
     document.getElementById('breakFee').textContent    = tx.fee       != null ? fmt(tx.fee)       : '—';
     document.getElementById('breakTotal').textContent  = tx.totalDebit!= null ? fmt(tx.totalDebit): '—';
 
-    // Show content
     document.getElementById('loadingState').classList.add('hidden');
     document.getElementById('receiptContent').classList.remove('hidden');
 
@@ -479,21 +460,35 @@
 
   // ─── Build receipt text for sharing ─────────────────────────────────────────
   function buildReceiptText(tx) {
-    return [
+    const senderName    = tx.sender?.name || tx.senderName || '—';
+    const senderAccount = tx.sender?.accountNumber || tx.senderAccount || '—';
+    const receiverName    = tx.receiver?.name || tx.receiverName || '—';
+    const receiverAccount = tx.receiver?.accountNumber || tx.receiverAccount || '—';
+    const network = tx.network || '—';
+    const phone   = tx.phone || '—';
+    const plan    = tx.plan || '—';
+
+    const lines = [
       '── Entity Bank Receipt ──',
-      `Status:     ${tx.status}`,
-      `Type:       ${tx.type}`,
+      `Status:     ${tx.status || '—'}`,
+      `Type:       ${tx.type || '—'}`,
       `Amount:     ${fmt(tx.amount)}`,
-      `Fee:        ${fmt(tx.fee)}`,
-      `Total:      ${fmt(tx.totalDebit)}`,
-      ``,
-      `From:  ${tx.sender?.name} (${tx.sender?.accountNumber})`,
-      `To:    ${tx.receiver?.name} (${tx.receiver?.accountNumber})`,
-      ``,
-      `Ref:   ${tx.id}`,
-      `Date:  ${fmtDate(tx.createdAt)}`,
-      `─────────────────────────`,
-    ].join('\n');
+    ];
+
+    if (tx.type === 'Debit') {
+      lines.push(`Fee:        ${fmt(tx.fee)}`);
+      lines.push(`Total:      ${fmt(tx.totalDebit)}`);
+    }
+
+    if (tx.type === 'Topup') {
+      lines.push('', `Network:    ${network}`, `Phone:      ${phone}`);
+      if (tx.plan) lines.push(`Plan:       ${plan}`);
+    } else {
+      lines.push('', `From:       ${senderName} (${senderAccount})`, `To:         ${receiverName} (${receiverAccount})`);
+    }
+
+    lines.push('', `Ref:   ${tx.id || '—'}`, `Date:  ${fmtDate(tx.createdAt)}`, '─────────────────────────');
+    return lines.join('\n');
   }
 
   // ─── Share / Copy ────────────────────────────────────────────────────────────
@@ -545,19 +540,17 @@
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // API may wrap in { data: mainSlip } or return mainSlip directly
-      const tx = data?.data || data;
-      currentTx = tx;
-      render(tx);
+      // const tx = data;
+      currentTx = data;
+      render(currentTx);
     } catch (err) {
-      const msg = err?.response?.data?.message
-               || err?.message
+      const msg = err.message
                || 'Something went wrong. Please try again.';
       showError(msg);
 
-      if (err?.response?.status === 401) {
+      if (err.status === 401) {
         localStorage.removeItem('token');
-        sessionStorage.removeItem('token');
+        localStorage.removeItem('accountNumber');
         setTimeout(() => { window.location.href = 'login.html'; }, 1200);
       }
     }
