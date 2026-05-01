@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — Entity Bank</title>
+  <script src="lib/axios.min.js"></script>
+  <script src="lib/tailwind.js"></script>
+  <script src="lib/lucide.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg:      '#0F172A',
+            card:    '#1E293B',
+            accent:  '#00C896',
+            muted:   '#334155',
+            label:   '#94A3B8',
+            text:    '#F1F5F9',
+            danger:  '#EF4444',
+          },
+          fontFamily: {
+            sans: ['DM Sans', 'sans-serif'],
+            mono: ['Space Mono', 'monospace'],
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      background-color: #0F172A;
+      color: #F1F5F9;
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Toggle switch ── */
+    .toggle-track {
+      width: 44px; height: 24px;
+      border-radius: 9999px;
+      background: #334155;
+      position: relative;
+      cursor: pointer;
+      transition: background .25s;
+      flex-shrink: 0;
+    }
+    .toggle-track.on  { background: #00C896; }
+    .toggle-track.disabled { opacity: .5; cursor: not-allowed; }
+
+    .toggle-thumb {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: #F1F5F9;
+      position: absolute;
+      top: 3px; left: 3px;
+      transition: transform .25s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+    .toggle-track.on .toggle-thumb { transform: translateX(20px); }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1E293B;
+      border: 1px solid #334155;
+      color: #F1F5F9;
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      z-index: 9999;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    #toast.success { border-color: #00C896; color: #00C896; }
+    #toast.info    { border-color: #60A5FA; color: #60A5FA; }
+
+    /* ── Skeleton shimmer ── */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #1E293B 25%, #273348 50%, #1E293B 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s infinite linear;
+      border-radius: 10px;
+    }
+
+    /* ── Row hover ── */
+    .settings-row {
+      transition: background .15s;
+    }
+    .settings-row:hover:not(.disabled-row) {
+      background: rgba(255,255,255,.03);
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #00C896;
+      padding: 0 4px;
+      margin-bottom: 4px;
+    }
+
+    /* ── Accent line on card ── */
+    .card-accent {
+      border-top: 1.5px solid #00C896;
+    }
+
+    /* ── Page fade in ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .4s ease both; }
+    .fade-up-1 { animation-delay: .05s; }
+    .fade-up-2 { animation-delay: .10s; }
+    .fade-up-3 { animation-delay: .15s; }
+    .fade-up-4 { animation-delay: .20s; }
+  </style>
+</head>
+
+<body class="flex flex-col items-center pb-20">
+
+  <!-- ░░ TOAST ░░ -->
+  <div id="toast"></div>
+
+  <!-- ░░ HEADER ░░ -->
+  <header class="w-full max-w-[480px] px-5 pt-10 pb-4 flex items-center gap-3">
+    <a href="javascript:history.back()"
+       class="w-9 h-9 rounded-xl bg-card border border-muted flex items-center justify-center hover:border-accent transition-colors">
+      <i data-lucide="arrow-left" class="w-4 h-4 text-label"></i>
+    </a>
+    <div>
+      <h1 class="text-lg font-semibold text-text leading-tight">Settings</h1>
+      <p class="text-xs text-label">Preferences &amp; security</p>
+    </div>
+  </header>
+
+  <!-- ░░ SKELETON (shown while loading) ░░ -->
+  <div id="skeleton" class="w-full max-w-[480px] px-5 space-y-5">
+    <div class="space-y-2">
+      <div class="skeleton h-3 w-20 mb-3"></div>
+      <div class="skeleton h-[60px] w-full rounded-2xl"></div>
+      <div class="skeleton h-[60px] w-full rounded-2xl"></div>
+      <div class="skeleton h-[60px] w-full rounded-2xl"></div>
+    </div>
+    <div class="space-y-2">
+      <div class="skeleton h-3 w-24 mb-3"></div>
+      <div class="skeleton h-[60px] w-full rounded-2xl"></div>
+    </div>
+    <div class="space-y-2">
+      <div class="skeleton h-3 w-20 mb-3"></div>
+      <div class="skeleton h-[60px] w-full rounded-2xl"></div>
+    </div>
+    <div class="skeleton h-[52px] w-full rounded-2xl mt-6"></div>
+  </div>
+
+  <!-- ░░ MAIN CONTENT ░░ -->
+  <main id="content" class="hidden w-full max-w-[480px] px-5 space-y-6">
+
+    <!-- ── SECTION: SECURITY ── -->
+    <section class="fade-up fade-up-1">
+      <p class="section-label mb-3">Security</p>
+      <div class="bg-card rounded-2xl border border-muted overflow-hidden card-accent divide-y divide-muted">
+
+        <!-- Change Password -->
+        <div class="settings-row disabled-row flex items-center justify-between px-4 py-4 opacity-60 cursor-not-allowed"
+             onclick="showToast('Feature coming soon', 'info')">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+              <i data-lucide="lock" class="w-4 h-4 text-label"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-text">Change Password</p>
+              <p class="text-xs text-label">Update your login password</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+              Soon
+            </span>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-label"></i>
+          </div>
+        </div>
+
+        <!-- Set Transaction PIN -->
+        <div class="settings-row disabled-row flex items-center justify-between px-4 py-4 opacity-60 cursor-not-allowed"
+             onclick="showToast('Feature coming soon', 'info')">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+              <i data-lucide="key-round" class="w-4 h-4 text-label"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-text">Set Transaction PIN</p>
+              <p class="text-xs text-label">Secure your transfers</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full text-label border border-muted"
+                  style="background:#475569;">
+              Soon
+            </span>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-label"></i>
+          </div>
+        </div>
+
+        <!-- Biometric Login -->
+        <div class="settings-row disabled-row flex items-center justify-between px-4 py-4 opacity-60 cursor-not-allowed"
+             onclick="showToast('Feature coming soon', 'info')">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+              <i data-lucide="fingerprint" class="w-4 h-4 text-label"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-text">Biometric Login</p>
+              <p class="text-xs text-label">Face ID / Fingerprint</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+              Soon
+            </span>
+            <div class="toggle-track disabled" id="biometricToggle">
+              <div class="toggle-thumb"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── SECTION: PREFERENCES ── -->
+    <section class="fade-up fade-up-2">
+      <p class="section-label mb-3">Preferences</p>
+      <div class="bg-card rounded-2xl border border-muted overflow-hidden card-accent divide-y divide-muted">
+
+        <!-- Hide Balance on Open -->
+        <div class="settings-row flex items-center justify-between px-4 py-4">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center"
+                 style="background:rgba(0,200,150,.12);">
+              <i data-lucide="eye-off" class="w-4 h-4 text-accent"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-text">Hide Balance on Open</p>
+              <p class="text-xs text-label">Mask balance when app launches</p>
+            </div>
+          </div>
+          <div class="toggle-track" id="hideBalanceToggle" onclick="toggleHideBalance()">
+            <div class="toggle-thumb"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── SECTION: ACCOUNT ── -->
+    <section class="fade-up fade-up-3">
+      <p class="section-label mb-3">Account</p>
+      <div class="bg-card rounded-2xl border border-muted overflow-hidden card-accent divide-y divide-muted">
+
+        <!-- BVN Verification -->
+        <div class="settings-row disabled-row flex items-center justify-between px-4 py-4 opacity-60 cursor-not-allowed"
+             onclick="showToast('Feature coming soon', 'info')">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+              <i data-lucide="badge-check" class="w-4 h-4 text-label"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-text">BVN Verification</p>
+              <p class="text-xs text-label">Link your Bank Verification Number</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+              Soon
+            </span>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-label"></i>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── LOGOUT ── -->
+    <section class="fade-up fade-up-4">
+      <button onclick="handleLogout()"
+              class="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border font-semibold text-sm transition-all duration-200 hover:opacity-90 active:scale-[.98]"
+              style="background:rgba(239,68,68,.12); border-color:rgba(239,68,68,.3); color:#EF4444;">
+        <i data-lucide="log-out" class="w-4 h-4"></i>
+        Log Out
+      </button>
+      <p class="text-center text-xs text-label mt-3 font-mono">Entity Bank · v1.0.0</p>
+    </section>
+
+  </main>
+
+  <script>
+    /* ── CONFIG ── */
+    const API_BASE = 'http://localhost:3060/api/v1';
+    let toastTimer = null;
+
+    /* ── TOAST ── */
+    function showToast(msg, type = 'info') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `show ${type}`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { t.className = ''; }, 2800);
+    }
+
+    /* ── AUTH CHECK ── */
+    function getToken() {
+      return localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('access_token');
+    }
+
+    async function checkAuth() {
+      const token = getToken();
+      if (!token) {
+        window.location.href = 'login.html';
+        return false;
+      }
+      try {
+        await axios.get(`${API_BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        return true;
+      } catch (err) {
+        if (err.response && err.response.status === 401) {
+          localStorage.clear();
+          window.location.href = 'login.html';
+          return false;
+        }
+        // Network error — still let the page load
+        return true;
+      }
+    }
+
+    /* ── INIT ── */
+    async function init() {
+      await checkAuth();
+
+      // Simulate brief skeleton (auth call acts as the delay)
+      setTimeout(() => {
+        document.getElementById('skeleton').classList.add('hidden');
+        document.getElementById('content').classList.remove('hidden');
+        lucide.createIcons();
+        loadPreferences();
+      }, 600);
+    }
+
+    /* ── PREFERENCES ── */
+    function loadPreferences() {
+      const hideBalance = localStorage.getItem('hideBalanceDefault') === 'true';
+      const toggle = document.getElementById('hideBalanceToggle');
+      if (hideBalance) toggle.classList.add('on');
+    }
+
+    function toggleHideBalance() {
+      const toggle = document.getElementById('hideBalanceToggle');
+      const isOn = toggle.classList.toggle('on');
+      localStorage.setItem('hideBalanceDefault', isOn);
+      showToast(isOn ? 'Balance hidden on open' : 'Balance visible on open', 'success');
+    }
+
+    /* ── LOGOUT ── */
+    function handleLogout() {
+      localStorage.clear();
+      showToast('Logging out…', 'info');
+      setTimeout(() => { window.location.href = 'login.html'; }, 800);
+    }
+
+    /* ── RUN ── */
+    init();
+  </script>
+</body>
+</html>
